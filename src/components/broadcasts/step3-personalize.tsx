@@ -65,6 +65,7 @@ const SAMPLE_CONTACT: Contact = {
   company: 'Acme Corp',
   created_at: new Date().toISOString(),
   updated_at: new Date().toISOString(),
+  identificacion: '1204146730'
 };
 
 export function Step3Personalize({
