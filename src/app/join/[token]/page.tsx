@@ -22,6 +22,7 @@
 // this page after email verification.
 // ============================================================
 
+import Image from "next/image";
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -293,8 +294,15 @@ export default function JoinPage() {
   // ----- Peek OK -----
   const inviteHeader = (
     <CardHeader className="items-center text-center">
-      <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-        <UsersRound className="h-6 w-6 text-primary" />
+      <div className="mb-2 flex h-16 w-16 items-center justify-center">
+        <Image
+          src="/logo2.png" // ajusta la ruta según donde guardes el archivo
+          alt="Nombre de tu empresa"
+          width={64}
+          height={64}
+          priority
+          className="object-contain"
+        />
       </div>
       <CardTitle className="text-xl text-foreground">
         You&apos;re invited to{' '}

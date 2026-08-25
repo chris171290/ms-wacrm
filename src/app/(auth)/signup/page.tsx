@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -131,12 +131,15 @@ function SignupPageInner() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md border-border bg-card">
         <CardHeader className="items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
-            {inviteToken ? (
-              <UsersRound className="h-6 w-6 text-primary" />
-            ) : (
-              <MessageSquare className="h-6 w-6 text-primary" />
-            )}
+          <div className="mb-2 flex h-16 w-16 items-center justify-center">
+            <Image
+              src="/logo2.png" // ajusta la ruta según donde guardes el archivo
+              alt="Nombre de tu empresa"
+              width={64}
+              height={64}
+              priority
+              className="object-contain"
+            />
           </div>
           <CardTitle className="text-xl text-foreground">
             {inviteToken ? "Create account & join" : "Create account"}
@@ -144,7 +147,7 @@ function SignupPageInner() {
           <CardDescription className="text-muted-foreground">
             {inviteToken
               ? "Verify your email, then accept the invitation to join your team."
-              : "Get started with CRM Template for WhatsApp"}
+              : "Get started with Majois CRM WhatsApp"}
           </CardDescription>
         </CardHeader>
         <CardContent>
