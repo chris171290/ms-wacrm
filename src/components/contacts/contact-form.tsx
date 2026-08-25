@@ -29,6 +29,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
+import { useCampanas } from '@/hooks/use-campanas';
 
 interface ContactFormProps {
   open: boolean;
@@ -77,6 +78,8 @@ export function ContactForm({
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [loadingTags, setLoadingTags] = useState(false);
+  const [campanaId, setCampanaId] = useState('');
+  const { campanas, loading: loadingCampanas } = useCampanas();
 
   useEffect(() => {
     if (open) {
@@ -90,6 +93,7 @@ export function ContactForm({
       setOrdenVenta(contact?.orden_venta ?? '');
       setEstado(contact?.estado ?? 'En Progreso');
       setSelectedTagIds(contactTags.map((ct) => ct.tag_id));
+      setCampanaId(contact?.campana_id ?? '');
       setDupMatch(null);
       fetchTags();
     }
@@ -171,6 +175,8 @@ export function ContactForm({
 
     setSaving(true);
 
+    const selectedCampana = campanas.find((c) => c.id === campanaId) ?? null;
+
     try {
       const {
         data: { session },
@@ -188,6 +194,8 @@ export function ContactForm({
             name: name.trim() || null,
             phone: phone.trim(),
             identificacion: identificacion.trim(),
+            campana_id: campanaId || null,
+            campana_nombre: selectedCampana?.name ?? (isEdit ? contact?.campana_nombre : null) ?? null,
             email: email.trim() || null,
             company: company.trim() || null,
             biometria,
@@ -206,6 +214,8 @@ export function ContactForm({
             name: name.trim() || null,
             phone: phone.trim(),
             identificacion: identificacion.trim(),
+            campana_id: campanaId || null,
+            campana_nombre: selectedCampana?.name ?? null,
             email: email.trim() || null,
             company: company.trim() || null,
             biometria,
@@ -391,6 +401,31 @@ export function ContactForm({
               placeholder={t('companyPlaceholder')}
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
             />
+          </div>
+                    <div className="space-y-2">
+            <Label htmlFor="cf-campana" className="text-muted-foreground">
+              {t('campanaLabel')}
+            </Label>
+            <select
+              id="cf-campana"
+              value={campanaId}
+              onChange={(e) => setCampanaId(e.target.value)}
+              disabled={loadingCampanas}
+              className="w-full h-9 rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+            >
+              <option value="">{t('campanaNone')}</option>
+              {campanas.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+            {loadingCampanas && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Loader2 className="size-3 animate-spin" />
+                {t('loadingCampanas')}
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="cf-orden-venta" className="text-muted-foreground">

@@ -385,7 +385,10 @@
       "identificacionPlaceholder": "Cédula o RUC (10 o 13 dígitos)",
       "identificacionHint": "Ingresa una cédula (10 dígitos) o RUC (13 dígitos) válido",
       "identificacionRequired": "La identificación es obligatoria",
-      "identificacionInvalid": "La identificación no es válida"
+      "identificacionInvalid": "La identificación no es válida",
+      "campanaLabel": "Campaña",
+      "campanaNone": "Sin campaña",
+      "loadingCampanas": "Cargando campañas..."
     },
     "detailView": {
       "tabs": {
@@ -454,7 +457,9 @@
       "biometria": "Biometría verificada",
       "identificacion": "Identificación",
       "identificacionRequired": "La identificación es obligatoria",
-      "identificacionInvalid": "La identificación no es válida"
+      "identificacionInvalid": "La identificación no es válida",
+      "campana": "Campaña",
+      "campanaNone": "Sin campaña"
     },
     "importModal": {
       "title": "Import Contacts",

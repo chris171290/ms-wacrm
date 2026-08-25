@@ -44,6 +44,7 @@ import { useTranslations } from 'next-intl';
 import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
 import { Checkbox } from '@/components/ui/checkbox'
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
+import { useCampanas } from '@/hooks/use-campanas';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -82,6 +83,8 @@ export function ContactDetailView({
   const [editBiometria, setEditBiometria] = useState(false);
   const [editOrdenVenta, setEditOrdenVenta] = useState('');
   const [editEstado, setEditEstado] = useState<ContactStatus>('En Progreso');
+  const [editCampanaId, setEditCampanaId] = useState('');
+  const { campanas, loading: loadingCampanas } = useCampanas();
   const [savingDetails, setSavingDetails] = useState(false);
 
   // Tags tab
@@ -126,6 +129,7 @@ export function ContactDetailView({
       setEditBiometria(data.biometria ?? false);
       setEditOrdenVenta(data.orden_venta ?? '');
       setEditEstado(data.estado ?? 'En Progreso');
+      setEditCampanaId(data.campana_id ?? '');
     }
     setLoading(false);
   }, [contactId, supabase]);
@@ -235,6 +239,8 @@ export function ContactDetailView({
       return;
     }
 
+    const selectedCampana = campanas.find((c) => c.id === editCampanaId) ?? null;
+
     setSavingDetails(true);
     const { error } = await supabase
       .from('contacts')
@@ -247,6 +253,8 @@ export function ContactDetailView({
         biometria: editBiometria,
         orden_venta: editOrdenVenta.trim() || null,
         estado: editEstado,
+        campana_id: editCampanaId || null,
+        campana_nombre: selectedCampana?.name ?? contact?.campana_nombre ?? null,
         updated_at: new Date().toISOString(),
       })
       .eq('id', contactId);
@@ -600,6 +608,22 @@ export function ContactDetailView({
                       onChange={(e) => setEditCompany(e.target.value)}
                       className="bg-muted border-border text-foreground h-8 text-sm"
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t('campana')}</Label>
+                    <select
+                      value={editCampanaId}
+                      onChange={(e) => setEditCampanaId(e.target.value)}
+                      disabled={loadingCampanas}
+                      className="w-full h-8 rounded-md border border-border bg-muted px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-60"
+                    >
+                      <option value="">{t('campanaNone')}</option>
+                      {campanas.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-muted-foreground text-xs">{t('ordenVenta')}</Label>

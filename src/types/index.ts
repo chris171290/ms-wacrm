@@ -125,6 +125,8 @@ export interface Contact {
   orden_venta?: string | null;
   estado?: ContactStatus;
   identificacion: string;
+  campana_id?: string | null;
+  campana_nombre?: string | null;
 }
 
 export interface Tag {

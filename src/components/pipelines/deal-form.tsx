@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -30,6 +30,7 @@ import {
   MessageSquare,
   DollarSign,
   Loader2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -71,10 +72,25 @@ export function DealForm({
   const [linkedConversation, setLinkedConversation] =
     useState<Conversation | null>(null);
 
+  const [contactQuery, setContactQuery] = useState("");
+  const [contactDropdownOpen, setContactDropdownOpen] = useState(false);
+  const contactWrapperRef = useRef<HTMLDivElement>(null);
+
   const [saving, setSaving] = useState(false);
   const [statusAction, setStatusAction] = useState<DealStatus | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+
+  function normalize(s: string) {
+    return s
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function contactLabel(c: Contact) {
+    return c.name || c.phone || "";
+  }
 
   // Reset the form fields every time the sheet opens or its input
   // props change. This is a legitimate prop-driven sync; the rule is
@@ -125,6 +141,33 @@ export function DealForm({
     };
   }, [open, supabase]);
 
+  // Cierra el dropdown al hacer click afuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        contactWrapperRef.current &&
+        !contactWrapperRef.current.contains(e.target as Node)
+      ) {
+        setContactDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const filteredContacts = useMemo(() => {
+    const q = normalize(contactQuery.trim());
+    if (!q) return contacts;
+    return contacts.filter((c) => {
+      const haystack = normalize(
+        [c.name, c.phone, (c as any).email, (c as any).cedula]
+          .filter(Boolean)
+          .join(" "),
+      );
+      return haystack.includes(q);
+    });
+  }, [contacts, contactQuery]);
+
   // Fetch linked conversation for the selected contact (newest open one).
   // Clearing on no-selection is sync with prop state; the populated
   // case runs setLinkedConversation inside the async fetch callback.
@@ -150,6 +193,7 @@ export function DealForm({
       cancelled = true;
     };
   }, [open, contactId, supabase]);
+
 
   async function handleSave() {
     if (!title.trim() || !contactId || !stageId) {
@@ -245,6 +289,13 @@ export function DealForm({
     onSaved();
   }
 
+  const selectedContact = contacts.find((c) => c.id === contactId) ?? null;
+  const contactInputValue = contactDropdownOpen
+    ? contactQuery
+    : selectedContact
+      ? contactLabel(selectedContact)
+      : "";
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -269,20 +320,70 @@ export function DealForm({
               />
             </div>
 
-            <div className="grid gap-2">
+            <div className="grid gap-2 relative" ref={contactWrapperRef}>
               <Label className="text-muted-foreground">{t("contact")}</Label>
-              <select
-                value={contactId}
-                onChange={(e) => setContactId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-              >
-                <option value="">{t("selectContact")}</option>
-                {contacts.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name || c.phone}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={contactInputValue}
+                  onChange={(e) => {
+                    setContactQuery(e.target.value);
+                    setContactDropdownOpen(true);
+                    if (contactId) setContactId("");
+                  }}
+                  onFocus={() => {
+                    setContactQuery(contactInputValue);
+                    setContactDropdownOpen(true);
+                  }}
+                  placeholder={t("selectContact")}
+                  className="border-border bg-muted pl-7 pr-7 text-foreground"
+                />
+                {contactId && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setContactId("");
+                      setContactQuery("");
+                      setContactDropdownOpen(true);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {contactDropdownOpen && (
+                <div className="absolute top-full left-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
+                  {filteredContacts.length === 0 ? (
+                    <p className="p-3 text-xs text-muted-foreground">
+                      {t("noContactsFound")}
+                    </p>
+                  ) : (
+                    filteredContacts.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => {
+                          setContactId(c.id);
+                          setContactQuery(contactLabel(c));
+                          setContactDropdownOpen(false);
+                        }}
+                        className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted ${
+                          c.id === contactId ? "bg-muted" : ""
+                        }`}
+                      >
+                        <span className="text-foreground">{contactLabel(c)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {[c.phone, (c as any).email, (c as any).cedula]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}              
 
               {linkedConversation && (
                 <Link
