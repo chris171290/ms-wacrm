@@ -374,7 +374,13 @@
       "dupSimilar": "매우 유사한 번호를 가진 연락처가 이미 있습니다.",
       "loadingTags": "태그를 불러오는 중...",
       "noTagsAvailable": "사용 가능한 태그가 없습니다. 설정에서 태그를 만드세요.",
-      "phoneRequired": "전화번호는 필수입니다"
+      "phoneRequired": "전화번호는 필수입니다",
+      "ordenVentaLabel": "Orden de venta",
+      "ordenVentaPlaceholder": "Número de orden",
+      "ascpLabel": "ASCP",
+      "ascpPlaceholder": "ASCP",
+      "estadoLabel": "Estado",
+      "biometriaLabel": "Biometría verificada"
     },
     "detailView": {
       "tabs": {
@@ -436,7 +442,11 @@
       "toastCustomFieldsSaved": "커스텀 필드가 저장되었습니다",
       "toastCustomFieldsFailed": "커스텀 필드를 저장하지 못했습니다",
       "toastTemplateSent": "\"{name}\" 템플릿을 보냈습니다",
-      "toastTemplateFailed": "템플릿을 보내지 못했습니다: {reason}"
+      "toastTemplateFailed": "템플릿을 보내지 못했습니다: {reason}",
+      "ordenVenta": "Orden de venta",
+      "ascp": "ASCP",
+      "estado": "Estado",
+      "biometria": "Biometría verificada"
     },
     "importModal": {
       "title": "연락처 가져오기",

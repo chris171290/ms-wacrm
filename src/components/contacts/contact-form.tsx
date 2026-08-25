@@ -5,13 +5,14 @@ import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { toast } from 'sonner';
-import type { Contact, Tag, ContactTag } from '@/types';
+import type { Contact, Tag, ContactTag, ContactStatus } from '@/types';
 import {
   findExistingContact,
   isExactMatch,
   isUniqueViolation,
   type ExistingContact,
 } from '@/lib/contacts/dedupe';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
 
 interface ContactFormProps {
   open: boolean;
@@ -55,6 +57,9 @@ export function ContactForm({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
+  const [biometria, setBiometria] = useState(false);
+  const [ordenVenta, setOrdenVenta] = useState('');
+  const [estado, setEstado] = useState<ContactStatus>('En Progreso');
   const [saving, setSaving] = useState(false);
 
   // Duplicate-phone detection for NEW contacts. `exact` (same digits)
@@ -76,6 +81,9 @@ export function ContactForm({
       setPhone(contact?.phone ?? '');
       setEmail(contact?.email ?? '');
       setCompany(contact?.company ?? '');
+      setBiometria(contact?.biometria ?? false);
+      setOrdenVenta(contact?.orden_venta ?? '');
+      setEstado(contact?.estado ?? 'En Progreso');
       setSelectedTagIds(contactTags.map((ct) => ct.tag_id));
       setDupMatch(null);
       fetchTags();
@@ -157,6 +165,9 @@ export function ContactForm({
             phone: phone.trim(),
             email: email.trim() || null,
             company: company.trim() || null,
+            biometria,
+            orden_venta: ordenVenta.trim() || null,
+            estado,
             updated_at: new Date().toISOString(),
           })
           .eq('id', contactId);
@@ -171,6 +182,9 @@ export function ContactForm({
             phone: phone.trim(),
             email: email.trim() || null,
             company: company.trim() || null,
+            biometria,
+            orden_venta: ordenVenta.trim() || null,
+            estado,
           })
           .select('id')
           .single();
@@ -321,6 +335,47 @@ export function ContactForm({
               placeholder={t('companyPlaceholder')}
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
             />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="cf-orden-venta" className="text-muted-foreground">
+              {t('ordenVentaLabel')}
+            </Label>
+            <Input
+              id="cf-orden-venta"
+              value={ordenVenta}
+              onChange={(e) => setOrdenVenta(e.target.value)}
+              placeholder={t('ordenVentaPlaceholder')}
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cf-estado" className="text-muted-foreground">
+              {t('estadoLabel')}
+            </Label>
+            <select
+              id="cf-estado"
+              value={estado}
+              onChange={(e) => setEstado(e.target.value as ContactStatus)}
+              className="w-full h-9 rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              {CONTACT_STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Checkbox
+              id="cf-biometria"
+              checked={biometria}
+              onCheckedChange={(checked) => setBiometria(checked === true)}
+            />
+            <Label htmlFor="cf-biometria" className="text-muted-foreground cursor-pointer">
+              {t('biometriaLabel')}
+            </Label>
           </div>
 
           <div className="space-y-2">

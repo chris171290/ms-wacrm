@@ -96,6 +96,14 @@ export interface AccountInvitation {
   accepted_by_user_id: string | null;
 }
 
+export type ContactStatus =
+  | 'En Progreso'
+  | 'Verificación'
+  | 'Negado'
+  | 'Aprobado'
+  | 'Desancle'
+  | 'ASCP';
+
 export interface Contact {
   id: string;
   user_id: string;
@@ -113,6 +121,9 @@ export interface Contact {
   /** Hydrated by queries that embed `contact_tags(tags(*))` (e.g. the
    *  Inbox conversation list, for tag filtering). Absent otherwise. */
   tags?: Tag[];
+  biometria?: boolean;
+  orden_venta?: string | null;
+  estado?: ContactStatus;
 }
 
 export interface Tag {

@@ -90,6 +90,21 @@ npm run dev
 Open <http://localhost:3000>. You'll be redirected to `/login` (or
 `/dashboard` if already signed in).
 
+### Simulate a conversation
+
+To create a local conversation with synthetic customer and agent messages,
+run the simulator with a profile email or user ID:
+
+```bash
+npm run simulate -- --email you@example.com --phone +15550001111 --name "Cliente demo"
+```
+
+The script uses the Supabase service-role key, so keep it server-side. It
+never calls Meta or WhatsApp. Use `--reset` to replace the existing demo
+conversation for that phone, or `--delay 1000` to insert one message per
+second. The same values can be provided through `SIMULATION_USER_EMAIL`,
+`SIMULATION_USER_ID`, `SIMULATION_PHONE`, and `SIMULATION_NAME`.
+
 Prefer containers? See [docs/docker.md](./docs/docker.md) for the
 Dockerfile + Docker Compose setup.
 

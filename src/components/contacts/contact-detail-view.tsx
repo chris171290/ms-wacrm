@@ -6,7 +6,7 @@ import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { useAuth } from '@/hooks/use-auth';
 import { formatCurrency } from '@/lib/currency';
 import { toast } from 'sonner';
-import type { Contact, Tag, ContactTag, ContactNote, CustomField, ContactCustomValue, Deal, MessageTemplate } from '@/types';
+import type { Contact, Tag, ContactTag, ContactNote, CustomField, ContactCustomValue, Deal, MessageTemplate, ContactStatus } from '@/types';
 import {
   TemplatePicker,
   type TemplateSendValues,
@@ -41,6 +41,8 @@ import {
   LayoutTemplate,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -74,6 +76,9 @@ export function ContactDetailView({
   const [editPhone, setEditPhone] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editCompany, setEditCompany] = useState('');
+  const [editBiometria, setEditBiometria] = useState(false);
+  const [editOrdenVenta, setEditOrdenVenta] = useState('');
+  const [editEstado, setEditEstado] = useState<ContactStatus>('En Progreso');
   const [savingDetails, setSavingDetails] = useState(false);
 
   // Tags tab
@@ -113,6 +118,9 @@ export function ContactDetailView({
       setEditPhone(data.phone);
       setEditEmail(data.email ?? '');
       setEditCompany(data.company ?? '');
+      setEditBiometria(data.biometria ?? false);
+      setEditOrdenVenta(data.orden_venta ?? '');
+      setEditEstado(data.estado ?? 'En Progreso');
     }
     setLoading(false);
   }, [contactId, supabase]);
@@ -211,6 +219,9 @@ export function ContactDetailView({
         phone: editPhone.trim(),
         email: editEmail.trim() || null,
         company: editCompany.trim() || null,
+        biometria: editBiometria,
+        orden_venta: editOrdenVenta.trim() || null,
+        estado: editEstado,
         updated_at: new Date().toISOString(),
       })
       .eq('id', contactId);
@@ -376,6 +387,22 @@ export function ContactDetailView({
       .slice(0, 2);
   }
 
+  function getStatusColor(status?: ContactStatus) {
+    switch (status) {
+      case 'Aprobado':
+        return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' };
+      case 'Negado':
+        return { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30' };
+      case 'Verificación':
+        return { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' };
+      case 'Desancle':
+        return { bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30' };
+      case 'En Progreso':
+      default:
+        return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border' };
+    }
+  }
+
   return (
     <>
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -398,9 +425,18 @@ export function ContactDetailView({
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <SheetTitle className="text-popover-foreground truncate">
-                    {contact.name || t('unnamed')}
-                  </SheetTitle>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <SheetTitle className="text-popover-foreground truncate">
+                      {contact.name || t('unnamed')}
+                    </SheetTitle>
+                    {contact.estado && (
+                      <span
+                        className={`shrink-0 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium ${getStatusColor(contact.estado).bg} ${getStatusColor(contact.estado).text} ${getStatusColor(contact.estado).border}`}
+                      >
+                        {contact.estado}
+                      </span>
+                    )}
+                  </div>
                   <SheetDescription className="text-muted-foreground text-xs mt-0.5">
                     {t('contactDetailsDesc')}
                   </SheetDescription>
@@ -520,6 +556,38 @@ export function ContactDetailView({
                       onChange={(e) => setEditCompany(e.target.value)}
                       className="bg-muted border-border text-foreground h-8 text-sm"
                     />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t('ordenVenta')}</Label>
+                    <Input
+                      value={editOrdenVenta}
+                      onChange={(e) => setEditOrdenVenta(e.target.value)}
+                      className="bg-muted border-border text-foreground h-8 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">{t('estado')}</Label>
+                    <select
+                      value={editEstado}
+                      onChange={(e) => setEditEstado(e.target.value as ContactStatus)}
+                      className="w-full h-8 rounded-md border border-border bg-muted px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                    >
+                      {CONTACT_STATUS_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2.5 pt-1">
+                    <Checkbox
+                      id="dv-biometria"
+                      checked={editBiometria}
+                      onCheckedChange={(checked) => setEditBiometria(checked === true)}
+                    />
+                    <Label htmlFor="dv-biometria" className="text-muted-foreground text-xs cursor-pointer">
+                      {t('biometria')}
+                    </Label>
                   </div>
                   <Button
                     onClick={saveDetails}
