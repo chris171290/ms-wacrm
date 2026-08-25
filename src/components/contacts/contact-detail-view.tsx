@@ -43,6 +43,7 @@ import {
 import { useTranslations } from 'next-intl';
 import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
 import { Checkbox } from '@/components/ui/checkbox'
+import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -74,6 +75,8 @@ export function ContactDetailView({
   // Details tab
   const [editName, setEditName] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editIdentificacion, setEditIdentificacion] = useState('');
+  const [identificacionError, setIdentificacionError] = useState('');
   const [editEmail, setEditEmail] = useState('');
   const [editCompany, setEditCompany] = useState('');
   const [editBiometria, setEditBiometria] = useState(false);
@@ -116,6 +119,8 @@ export function ContactDetailView({
       setContact(data);
       setEditName(data.name ?? '');
       setEditPhone(data.phone);
+      setEditIdentificacion(data.identificacion ?? '');
+      setIdentificacionError('');
       setEditEmail(data.email ?? '');
       setEditCompany(data.company ?? '');
       setEditBiometria(data.biometria ?? false);
@@ -205,9 +210,28 @@ export function ContactDetailView({
     setTimeout(() => setCopiedPhone(false), 2000);
   }
 
+  function validateIdentificacion(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setIdentificacionError(t('identificacionRequired'));
+      return false;
+    }
+    if (!validarIdentificacionEcuador(trimmed)) {
+      setIdentificacionError(t('identificacionInvalid'));
+      return false;
+    }
+    setIdentificacionError('');
+    return true;
+  }
+
   async function saveDetails() {
     if (!contactId || !editPhone.trim()) {
       toast.error(t('toastPhoneRequired'));
+      return;
+    }
+
+    if (!validateIdentificacion(editIdentificacion)) {
+      toast.error(identificacionError || t('identificacionInvalid'));
       return;
     }
 
@@ -217,6 +241,7 @@ export function ContactDetailView({
       .update({
         name: editName.trim() || null,
         phone: editPhone.trim(),
+        identificacion: editIdentificacion.trim(),
         email: editEmail.trim() || null,
         company: editCompany.trim() || null,
         biometria: editBiometria,
@@ -542,6 +567,25 @@ export function ContactDetailView({
                     />
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">
+                      {t('identificacion')} <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      value={editIdentificacion}
+                      onChange={(e) => {
+                        setEditIdentificacion(e.target.value);
+                        if (identificacionError) setIdentificacionError('');
+                      }}
+                      onBlur={(e) => validateIdentificacion(e.target.value)}
+                      maxLength={13}
+                      inputMode="numeric"
+                      className="bg-muted border-border text-foreground h-8 text-sm"
+                    />
+                    {identificacionError && (
+                      <p className="text-xs text-red-400">{identificacionError}</p>
+                    )}
+                  </div>
+                  <div className="space-y-1.5">
                     <Label className="text-muted-foreground text-xs">{t('email')}</Label>
                     <Input
                       value={editEmail}
@@ -591,7 +635,7 @@ export function ContactDetailView({
                   </div>
                   <Button
                     onClick={saveDetails}
-                    disabled={savingDetails}
+                    disabled={savingDetails || !!identificacionError}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground w-full"
                     size="sm"
                   >

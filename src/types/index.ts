@@ -124,6 +124,7 @@ export interface Contact {
   biometria?: boolean;
   orden_venta?: string | null;
   estado?: ContactStatus;
+  identificacion: string;
 }
 
 export interface Tag {

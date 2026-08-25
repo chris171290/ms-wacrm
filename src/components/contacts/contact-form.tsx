@@ -28,6 +28,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
+import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
 
 interface ContactFormProps {
   open: boolean;
@@ -55,6 +56,8 @@ export function ContactForm({
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [identificacion, setIdentificacion] = useState('');
+  const [identificacionError, setIdentificacionError] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
   const [biometria, setBiometria] = useState(false);
@@ -79,6 +82,8 @@ export function ContactForm({
     if (open) {
       setName(contact?.name ?? '');
       setPhone(contact?.phone ?? '');
+      setIdentificacion(contact?.identificacion ?? '');
+      setIdentificacionError('');
       setEmail(contact?.email ?? '');
       setCompany(contact?.company ?? '');
       setBiometria(contact?.biometria ?? false);
@@ -112,6 +117,20 @@ export function ContactForm({
     }
   }
 
+  function validateIdentificacion(value: string) {
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setIdentificacionError(t('identificacionRequired'));
+      return false;
+    }
+    if (!validarIdentificacionEcuador(trimmed)) {
+      setIdentificacionError(t('identificacionInvalid'));
+      return false;
+    }
+    setIdentificacionError('');
+    return true;
+  }
+
   async function fetchTags() {
     setLoadingTags(true);
     const { data } = await supabase
@@ -135,6 +154,11 @@ export function ContactForm({
 
     if (!phone.trim()) {
       toast.error(t('phoneRequired'));
+      return;
+    }
+
+    if (!validateIdentificacion(identificacion)) {
+      toast.error(identificacionError || t('identificacionInvalid'));
       return;
     }
 
@@ -163,6 +187,7 @@ export function ContactForm({
           .update({
             name: name.trim() || null,
             phone: phone.trim(),
+            identificacion: identificacion.trim(),
             email: email.trim() || null,
             company: company.trim() || null,
             biometria,
@@ -180,6 +205,7 @@ export function ContactForm({
             account_id: accountId,
             name: name.trim() || null,
             phone: phone.trim(),
+            identificacion: identificacion.trim(),
             email: email.trim() || null,
             company: company.trim() || null,
             biometria,
@@ -236,8 +262,8 @@ export function ContactForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="bg-popover border-border text-popover-foreground sm:max-w-md max-h-[85vh] flex flex-col p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-2 shrink-0">
           <DialogTitle className="text-popover-foreground">
             {isEdit ? t('editTitle') : t('addTitle')}
           </DialogTitle>
@@ -248,7 +274,11 @@ export function ContactForm({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form
+          id="contact-form"
+          onSubmit={handleSubmit}
+          className="space-y-4 overflow-y-auto px-6 py-4 flex-1 min-h-0"
+        >
           <div className="space-y-2">
             <Label htmlFor="cf-name" className="text-muted-foreground">
               {t('nameLabel')}
@@ -306,6 +336,32 @@ export function ContactForm({
             ) : (
               <p className="text-xs text-muted-foreground">
                 {t('phoneHint')}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="cf-identificacion" className="text-muted-foreground">
+              {t('identificacionLabel')} <span className="text-red-400">*</span>
+            </Label>
+            <Input
+              id="cf-identificacion"
+              value={identificacion}
+              onChange={(e) => {
+                setIdentificacion(e.target.value);
+                if (identificacionError) setIdentificacionError('');
+              }}
+              onBlur={(e) => validateIdentificacion(e.target.value)}
+              placeholder={t('identificacionPlaceholder')}
+              maxLength={13}
+              inputMode="numeric"
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+            />
+            {identificacionError ? (
+              <p className="text-xs text-red-400">{identificacionError}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                {t('identificacionHint')}
               </p>
             )}
           </div>
@@ -416,26 +472,26 @@ export function ContactForm({
               </div>
             )}
           </div>
-
-          <DialogFooter className="bg-popover border-border">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="border-border text-muted-foreground hover:bg-muted"
-            >
-              {t('cancel')}
-            </Button>
-            <Button
-              type="submit"
-              disabled={saving || checkingDup || (!isEdit && !!dupMatch?.exact)}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              {saving && <Loader2 className="size-4 animate-spin" />}
-              {isEdit ? t('update') : t('create')}
-            </Button>
-          </DialogFooter>
         </form>
+        <DialogFooter className="mx-0 mb-0 px-6 py-4 border-t border-border rounded-b-xl shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="border-border text-muted-foreground hover:bg-muted"
+          >
+            {t('cancel')}
+          </Button>
+          <Button
+            type="submit"
+            form="contact-form"
+            disabled={saving || checkingDup || !!identificacionError || (!isEdit && !!dupMatch?.exact)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            {saving && <Loader2 className="size-4 animate-spin" />}
+            {isEdit ? t('update') : t('create')}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
