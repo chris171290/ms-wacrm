@@ -124,6 +124,7 @@ export interface Contact {
   identificacion: string;
   campana_id?: string | null;
   campana_nombre?: string | null;
+  origen?: string | null;
 }
 
 export interface Tag {

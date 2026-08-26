@@ -221,6 +221,7 @@ export function ContactForm({
             biometria,
             orden_venta: ordenVenta.trim() || null,
             estado,
+            origen: 'sistema',
           })
           .select('id')
           .single();

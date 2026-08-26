@@ -459,7 +459,8 @@
       "identificacionRequired": "La identificación es obligatoria",
       "identificacionInvalid": "La identificación no es válida",
       "campana": "Campaña",
-      "campanaNone": "Sin campaña"
+      "campanaNone": "Sin campaña",
+      "origen": "Origen"
     },
     "importModal": {
       "title": "Importar contactos",

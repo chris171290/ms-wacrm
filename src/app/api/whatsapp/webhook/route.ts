@@ -1152,6 +1152,7 @@ async function findOrCreateContact(
       user_id: configOwnerUserId,
       phone,
       name: name || phone,
+      origen: "meta"
     })
     .select()
     .single()

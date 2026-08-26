@@ -39,6 +39,7 @@ import {
   X,
   DollarSign,
   LayoutTemplate,
+  FlagTriangleRight
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
@@ -492,6 +493,12 @@ export function ContactDetailView({
                       <span className="flex items-center gap-1">
                         <Building2 className="size-3" />
                         {contact.company}
+                      </span>
+                    )}
+                    {contact.origen && (
+                      <span className="flex items-center gap-1 capitalize">
+                        <FlagTriangleRight className='size-3'/>
+                        {contact.origen}
                       </span>
                     )}
                   </div>

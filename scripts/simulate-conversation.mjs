@@ -54,6 +54,7 @@ if (!contact) {
       account_id: profile.account_id,
       phone,
       name: contactName,
+      origen: "meta"
     })
     .select('id, name, phone')
     .single()
