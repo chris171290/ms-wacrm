@@ -426,10 +426,6 @@ export function ContactDetailView({
         return { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' };
       case 'Negado':
         return { bg: 'bg-red-500/15', text: 'text-red-400', border: 'border-red-500/30' };
-      case 'Verificación':
-        return { bg: 'bg-amber-500/15', text: 'text-amber-400', border: 'border-amber-500/30' };
-      case 'Desancle':
-        return { bg: 'bg-sky-500/15', text: 'text-sky-400', border: 'border-sky-500/30' };
       case 'En Progreso':
       default:
         return { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border' };
