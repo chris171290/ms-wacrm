@@ -98,11 +98,8 @@ export interface AccountInvitation {
 
 export type ContactStatus =
   | 'En Progreso'
-  | 'Verificación'
-  | 'Negado'
   | 'Aprobado'
-  | 'Desancle'
-  | 'ASCP';
+  | 'Negado'
 
 export interface Contact {
   id: string;

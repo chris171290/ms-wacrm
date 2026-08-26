@@ -10,11 +10,11 @@ interface UpstreamCampana {
 }
 
 export async function GET() {
-  const token = process.env.CAMPANAS_API_TOKEN;
+  const token = process.env.MAJOIS_CRM_API_TOKEN;
   const url = process.env.CAMPANAS_API_URL;
 
   if (!token || !url) {
-    console.error('CAMPANAS_API_TOKEN o CAMPANAS_API_URL no están configurados');
+    console.error('MAJOIS_CRM_API_TOKEN o CAMPANAS_API_URL no están configurados');
     return NextResponse.json(
       { error: 'Server misconfigured' },
       { status: 500 },
