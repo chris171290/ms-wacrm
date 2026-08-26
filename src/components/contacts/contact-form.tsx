@@ -402,7 +402,7 @@ export function ContactForm({
               className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
             />
           </div>
-                    <div className="space-y-2">
+          <div className="space-y-2">
             <Label htmlFor="cf-campana" className="text-muted-foreground">
               {t('campanaLabel')}
             </Label>

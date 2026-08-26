@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { useProductos } from "@/hooks/use-productos";
 
 interface DealFormProps {
   open: boolean;
@@ -58,7 +59,7 @@ export function DealForm({
   const supabase = createClient();
   const { accountId, defaultCurrency } = useAuth();
 
-  const [title, setTitle] = useState("");
+  // const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
   const [currency, setCurrency] = useState(defaultCurrency);
   const [contactId, setContactId] = useState("");
@@ -66,6 +67,8 @@ export function DealForm({
   const [assignedTo, setAssignedTo] = useState("");
   const [expectedCloseDate, setExpectedCloseDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [productoId, setProductoId] = useState("");
+  const { productos, loading: loadingProductos } = useProductos();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -100,7 +103,7 @@ export function DealForm({
     if (!open) return;
     setConfirmDelete(false);
     if (deal) {
-      setTitle(deal.title);
+      // setTitle(deal.title);
       setValue(String(deal.value ?? ""));
       setCurrency(deal.currency || defaultCurrency);
       // contact_id is nullable when the contact has been deleted
@@ -110,8 +113,9 @@ export function DealForm({
       setAssignedTo(deal.assigned_to ?? "");
       setExpectedCloseDate(deal.expected_close_date ?? "");
       setNotes(deal.notes ?? "");
+      setProductoId(deal.producto_id ?? "");
     } else {
-      setTitle("");
+      // setTitle("");
       setValue("");
       setCurrency(defaultCurrency);
       setContactId("");
@@ -119,6 +123,7 @@ export function DealForm({
       setAssignedTo("");
       setExpectedCloseDate("");
       setNotes("");
+      setProductoId("");
     }
   }, [open, deal, defaultStageId, stages, defaultCurrency]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -194,16 +199,29 @@ export function DealForm({
     };
   }, [open, contactId, supabase]);
 
+  useEffect(() => {
+    if (!productoId) return;
+    const producto = productos.find((p) => p.id === productoId);
+    if (producto?.precioBase) {
+      setValue(String(producto.precioBase.amount));
+      setCurrency(producto.precioBase.currencyCode);
+    }
+  }, [productoId, productos]);
 
   async function handleSave() {
-    if (!title.trim() || !contactId || !stageId) {
+    // if (!title.trim() || !contactId || !stageId) {
+    if (!productoId || !contactId || !stageId) {
       toast.error(t("toastRequired"));
       return;
     }
     setSaving(true);
 
+    const selectedProducto = productos.find((p) => p.id === productoId) ?? null;
+    const resolvedTitle = selectedProducto?.name ?? (deal ? deal.title : "") ?? "";
+
     const payload = {
-      title: title.trim(),
+      // title: title.trim(),
+      title: resolvedTitle,
       value: parseFloat(value) || 0,
       currency,
       contact_id: contactId,
@@ -212,6 +230,8 @@ export function DealForm({
       assigned_to: assignedTo || null,
       notes: notes.trim() || null,
       expected_close_date: expectedCloseDate || null,
+      producto_id: productoId,
+      producto_nombre: selectedProducto?.name ?? (deal ? deal.producto_nombre : null) ?? null,
     };
 
     if (deal) {
@@ -295,6 +315,8 @@ export function DealForm({
     : selectedContact
       ? contactLabel(selectedContact)
       : "";
+  const selectedProducto = productos.find((p) => p.id === productoId) ?? null;
+  const selectedProductoPrecio = selectedProducto?.precioBase ?? null;
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -310,7 +332,7 @@ export function DealForm({
           </SheetHeader>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="grid gap-2">
+            {/* <div className="grid gap-2">
               <Label className="text-muted-foreground">{t("title")}</Label>
               <Input
                 value={title}
@@ -318,6 +340,29 @@ export function DealForm({
                 placeholder={t("titlePlaceholder")}
                 className="border-border bg-muted text-foreground"
               />
+            </div> */}
+
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("product")}</Label>
+              <select
+                value={productoId}
+                onChange={(e) => setProductoId(e.target.value)}
+                disabled={loadingProductos}
+                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
+              >
+                <option value="">{t("noProduct")}</option>
+                {productos.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              {loadingProductos && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  {t("loadingProducts")}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2 relative" ref={contactWrapperRef}>
@@ -405,8 +450,10 @@ export function DealForm({
                     type="number"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
+                    disabled={!!selectedProductoPrecio}
                     placeholder="0"
-                    className="border-border bg-muted pl-7 text-foreground"
+                    // className="border-border bg-muted pl-7 text-foreground"
+                    className="border-border bg-muted pl-7 text-foreground disabled:opacity-60"
                   />
                 </div>
               </div>
@@ -415,6 +462,7 @@ export function DealForm({
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
+                  disabled={!!selectedProductoPrecio}
                   className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
                 >
                   {CURRENCIES.map((c) => (
@@ -424,6 +472,11 @@ export function DealForm({
                   ))}
                 </select>
               </div>
+              {selectedProductoPrecio && (
+                <p className="text-xs text-muted-foreground">
+                  {t("valueFromProduct")}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -432,7 +485,7 @@ export function DealForm({
                 type="date"
                 value={expectedCloseDate}
                 onChange={(e) => setExpectedCloseDate(e.target.value)}
-                className="border-border bg-muted text-foreground"
+                className="border-border bg-muted text-foreground scheme-light"
               />
             </div>
 
@@ -540,7 +593,8 @@ export function DealForm({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={saving || !title.trim() || !contactId || !stageId}
+                // disabled={saving || !title.trim() || !contactId || !stageId}
+                disabled={saving || !productoId || !contactId || !stageId}
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {saving ? t("saving") : deal ? t("saveChanges") : t("createDeal")}

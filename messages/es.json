@@ -595,7 +595,12 @@
       "toastReopened": "Negocio reabierto",
       "toastFailedDelete": "Error al eliminar el negocio",
       "toastDeleted": "Negocio eliminado",
-      "noContactsFound": "Contacto no encontrado"
+      "noContactsFound": "Contacto no encontrado",
+      "product": "Producto",
+      "noProduct": "Sin producto",
+      "loadingProducts": "Cargando productos...",
+      "selectProduct": "Selecciona un producto",
+      "valueFromProduct": "Valor definido por el producto seleccionado"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",
