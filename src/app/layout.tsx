@@ -22,10 +22,10 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "Majois CRM",
-    template: "%s — Majois CRM",
+    default: "MajoisChat",
+    template: "%s — MajoisChat",
   },
-  description: "Majois CRM WhatsApp.",
+  description: "MajoisChat es el CRM multiagente para WhatsApp que transforma tus chats en ventas.",
   robots: {
     index: false,
     follow: false,

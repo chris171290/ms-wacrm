@@ -147,7 +147,7 @@ function SignupPageInner() {
           <CardDescription className="text-muted-foreground">
             {inviteToken
               ? "Verify your email, then accept the invitation to join your team."
-              : "Get started with Majois CRM WhatsApp"}
+              : "Get started with MajoisChat"}
           </CardDescription>
         </CardHeader>
         <CardContent>
