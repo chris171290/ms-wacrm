@@ -27,6 +27,7 @@ import {
   Zap,
 } from "lucide-react";
 import type { AccountRole } from "@/lib/auth/roles";
+import Image from "next/image";
 
 // Per-role chip metadata used in the sidebar's account strip + the
 // Members tab roster. Keeping this near both consumers in a single
@@ -156,6 +157,8 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
     };
   }, [open, onClose]);
 
+  const companyLogoUrl = '/logo2.png'
+
   return (
     <>
       {/* Backdrop — only exists on mobile and only when open. Clicking
@@ -188,12 +191,28 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             close button is hidden since the sidebar is always-visible. */}
         <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-border px-4">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            {/* <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <MessageSquare className="h-4 w-4" />
+            </div> */}
+            <div className="relative flex h-16 w-16 shrink-0 items-center justify-center">
+              {/* Logo ocupa todo el contenedor, ya más grande */}
+              <Image
+                src={companyLogoUrl}
+                alt=""
+                fill
+                className="object-contain"
+              />
+              {/* Ícono blanco encima, centrado */}
+              <MessageSquare className="relative z-10 h-3.5 w-3.5 text-white" />
             </div>
-            <span className="text-sm font-semibold text-foreground">
-              {t("title")}
-            </span>
+            <div className="flex flex-col min-w-0 leading-tight">
+              <span className="text-sm font-semibold text-foreground">
+                {t("title")}
+              </span>
+              <span className="text-xs text-muted-foreground truncate">
+                {"Ecufonemire"}
+              </span>
+            </div>
           </Link>
           <button
             type="button"
