@@ -603,7 +603,18 @@
       "noProduct": "Sin producto",
       "loadingProducts": "Cargando productos...",
       "selectProduct": "Selecciona un producto",
-      "valueFromProduct": "Valor definido por el producto seleccionado"
+      "valueFromProduct": "Valor definido por el producto seleccionado",
+      "icc": "ICC",
+      "iccPlaceholder": "Número ICC",
+      "mesh": "MESH",
+      "formaDePago": "Forma de pago",
+      "selectFormaDePago": "Selecciona forma de pago",
+      "entidadBancaria": "Entidad bancaria",
+      "selectEntidadBancaria": "Selecciona entidad bancaria",
+      "loadingEntidades": "Cargando entidades...",
+      "numeroCuenta": "Número de cuenta",
+      "numeroCuentaPlaceholder": "Número de cuenta",
+      "toastBankDetailsRequired": "Entidad bancaria y número de cuenta son obligatorios para transferencia"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

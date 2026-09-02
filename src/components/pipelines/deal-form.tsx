@@ -35,6 +35,10 @@ import {
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useProductos } from "@/hooks/use-productos";
+import { useEntidadesBancarias } from "@/hooks/use-entidades-bancarias";
+import { FORMA_PAGO_OPTIONS } from "@/lib/deals/constants";
+import type { FormaPago } from "@/types";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DealFormProps {
   open: boolean;
@@ -69,6 +73,12 @@ export function DealForm({
   const [notes, setNotes] = useState("");
   const [productoId, setProductoId] = useState("");
   const { productos, loading: loadingProductos } = useProductos();
+  const [icc, setIcc] = useState("");
+  const [mesh, setMesh] = useState(false);
+  const [formaDePago, setFormaDePago] = useState<FormaPago | "">("");
+  const [entidadBancariaId, setEntidadBancariaId] = useState("");
+  const [numeroCuenta, setNumeroCuenta] = useState("");
+  const { entidades: entidadesBancarias, loading: loadingEntidades } = useEntidadesBancarias();
 
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -114,6 +124,11 @@ export function DealForm({
       setExpectedCloseDate(deal.expected_close_date ?? "");
       setNotes(deal.notes ?? "");
       setProductoId(deal.producto_id ?? "");
+      setIcc(deal.icc ?? "");
+      setMesh(deal.mesh ?? false);
+      setFormaDePago(deal.forma_de_pago ?? "");
+      setEntidadBancariaId(deal.entidad_bancaria_id ?? "");
+      setNumeroCuenta(deal.numero_cuenta ?? "");
     } else {
       // setTitle("");
       setValue("");
@@ -124,6 +139,11 @@ export function DealForm({
       setExpectedCloseDate("");
       setNotes("");
       setProductoId("");
+      setIcc("");
+      setMesh(false);
+      setFormaDePago("");
+      setEntidadBancariaId("");
+      setNumeroCuenta("");
     }
   }, [open, deal, defaultStageId, stages, defaultCurrency]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -214,6 +234,15 @@ export function DealForm({
       toast.error(t("toastRequired"));
       return;
     }
+
+
+    const isTransferencia = formaDePago === "Transferencia bancaria";
+    if (isTransferencia && (!entidadBancariaId || !numeroCuenta.trim())) {
+      toast.error(t("toastBankDetailsRequired"));
+      return;
+    }
+
+
     setSaving(true);
 
     const selectedProducto = productos.find((p) => p.id === productoId) ?? null;
@@ -232,6 +261,11 @@ export function DealForm({
       expected_close_date: expectedCloseDate || null,
       producto_id: productoId,
       producto_nombre: selectedProducto?.name ?? (deal ? deal.producto_nombre : null) ?? null,
+      icc: icc.trim() || null,
+      mesh,
+      forma_de_pago: formaDePago || null,
+      entidad_bancaria_id: isTransferencia ? entidadBancariaId || null : null,
+      numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
     };
 
     if (deal) {
@@ -529,7 +563,97 @@ export function DealForm({
                 className="min-h-[100px] border-border bg-muted text-foreground"
               />
             </div>
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("icc")}</Label>
+              <Input
+                value={icc}
+                onChange={(e) => setIcc(e.target.value)}
+                placeholder={t("iccPlaceholder")}
+                className="border-border bg-muted text-foreground"
+              />
+            </div>
 
+            <div className="flex items-center gap-2.5">
+              <Checkbox
+                id="deal-mesh"
+                checked={mesh}
+                onCheckedChange={(checked) => setMesh(checked === true)}
+              />
+              <Label htmlFor="deal-mesh" className="text-muted-foreground cursor-pointer">
+                {t("mesh")}
+              </Label>
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("formaDePago")}</Label>
+              <select
+                value={formaDePago}
+                onChange={(e) => {
+                  const next = e.target.value as FormaPago | "";
+                  setFormaDePago(next);
+                  // Al salir de Transferencia Bancaria, limpiamos los
+                  // campos bancarios para que no queden datos ocultos
+                  // desincronizados si el usuario ya los había llenado.
+                  if (next !== "Transferencia bancaria") {
+                    setEntidadBancariaId("");
+                    setNumeroCuenta("");
+                  }
+                }}
+                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+              >
+                <option value="" disabled>
+                  {t("selectFormaDePago")}
+                </option>
+                {FORMA_PAGO_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {formaDePago === "Transferencia bancaria" && (
+              <>
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">
+                    {t("entidadBancaria")} <span className="text-red-400">*</span>
+                  </Label>
+                  <select
+                    value={entidadBancariaId}
+                    onChange={(e) => setEntidadBancariaId(e.target.value)}
+                    disabled={loadingEntidades}
+                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
+                  >
+                    <option value="" disabled>
+                      {t("selectEntidadBancaria")}
+                    </option>
+                    {entidadesBancarias.map((e) => (
+                      <option key={e.id} value={e.id}>
+                        {e.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingEntidades && (
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      {t("loadingEntidades")}
+                    </p>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">
+                    {t("numeroCuenta")} <span className="text-red-400">*</span>
+                  </Label>
+                  <Input
+                    value={numeroCuenta}
+                    onChange={(e) => setNumeroCuenta(e.target.value)}
+                    placeholder={t("numeroCuentaPlaceholder")}
+                    className="border-border bg-muted text-foreground"
+                  />
+                </div>
+              </>
+            )}
             {deal && (
               <div className="space-y-2 rounded-lg border border-border bg-muted/50 p-3">
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -594,7 +718,15 @@ export function DealForm({
               <Button
                 onClick={handleSave}
                 // disabled={saving || !title.trim() || !contactId || !stageId}
-                disabled={saving || !productoId || !contactId || !stageId}
+                // disabled={saving || !productoId || !contactId || !stageId}
+                disabled={
+                  saving ||
+                  !productoId ||
+                  !contactId ||
+                  !stageId ||
+                  (formaDePago === "Transferencia bancaria" &&
+                    (!entidadBancariaId || !numeroCuenta.trim()))
+                }
                 className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
               >
                 {saving ? t("saving") : deal ? t("saveChanges") : t("createDeal")}

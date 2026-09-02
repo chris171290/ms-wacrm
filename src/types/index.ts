@@ -378,6 +378,16 @@ export interface PipelineStage {
 
 export type DealStatus = 'open' | 'won' | 'lost';
 
+export type FormaPago =
+  | 'Efectivo'
+  | 'Tarjeta de crédito/débito'
+  | 'Transferencia bancaria';
+
+export interface EntidadBancaria {
+  id: string;
+  nombre: string;
+}
+
 export interface Deal {
   id: string;
   user_id: string;
@@ -403,6 +413,11 @@ export interface Deal {
   assignee?: Profile;
   producto_id?: string;
   producto_nombre?: string;
+  icc?: string | null;
+  mesh?: boolean;
+  forma_de_pago?: FormaPago | null;
+  entidad_bancaria_id?: string | null;
+  numero_cuenta?: string | null;
 }
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
