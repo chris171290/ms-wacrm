@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
@@ -30,6 +30,7 @@ import { useTranslations } from 'next-intl';
 import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
 import { useCampanas } from '@/hooks/use-campanas';
+import { checkVentasByCedula } from '@/lib/contacts/check-ventas';
 
 interface ContactFormProps {
   open: boolean;
@@ -120,6 +121,7 @@ export function ContactForm({
       setCheckingDup(false);
     }
   }
+  const lastCheckedCedulaRef = useRef<string | null>(null);
 
   function validateIdentificacion(value: string) {
     const trimmed = value.trim();
@@ -133,6 +135,22 @@ export function ContactForm({
     }
     setIdentificacionError('');
     return true;
+  }
+
+  async function handleIdentificacionBlur(value: string) {
+    const isValid = validateIdentificacion(value);
+    if (!isValid) return;
+
+    const trimmed = value.trim();
+    if (lastCheckedCedulaRef.current === trimmed) return;
+    lastCheckedCedulaRef.current = trimmed;
+
+    const count = await checkVentasByCedula(trimmed);
+    if (count && count > 0) {
+      toast.warning(t('toastVentasPrevias', { cedula: trimmed, count }), {
+        duration: 10000,
+      });
+    }
   }
 
   async function fetchTags() {
@@ -362,7 +380,7 @@ export function ContactForm({
                 setIdentificacion(e.target.value);
                 if (identificacionError) setIdentificacionError('');
               }}
-              onBlur={(e) => validateIdentificacion(e.target.value)}
+              onBlur={(e) => handleIdentificacionBlur(e.target.value)}
               placeholder={t('identificacionPlaceholder')}
               maxLength={13}
               inputMode="numeric"

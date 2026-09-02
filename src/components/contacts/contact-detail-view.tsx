@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { addContactTag, deleteContactTag } from '@/lib/contacts/tag-api';
 import { useAuth } from '@/hooks/use-auth';
@@ -46,6 +46,7 @@ import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
 import { Checkbox } from '@/components/ui/checkbox'
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
 import { useCampanas } from '@/hooks/use-campanas';
+import { checkVentasByCedula } from '@/lib/contacts/check-ventas';
 
 interface ContactDetailViewProps {
   open: boolean;
@@ -215,6 +216,8 @@ export function ContactDetailView({
     setTimeout(() => setCopiedPhone(false), 2000);
   }
 
+  const lastCheckedCedulaRef = useRef<string | null>(null);
+
   function validateIdentificacion(value: string) {
     const trimmed = value.trim();
     if (!trimmed) {
@@ -227,6 +230,22 @@ export function ContactDetailView({
     }
     setIdentificacionError('');
     return true;
+  }
+
+  async function handleIdentificacionBlur(value: string) {
+    const isValid = validateIdentificacion(value);
+    if (!isValid) return;
+
+    const trimmed = value.trim();
+    if (lastCheckedCedulaRef.current === trimmed) return;
+    lastCheckedCedulaRef.current = trimmed;
+
+    const count = await checkVentasByCedula(trimmed);
+    if (count && count > 0) {
+      toast.warning(t('toastVentasPrevias', { cedula: trimmed, count }), {
+        duration: 10000,
+      });
+    }
   }
 
   async function saveDetails() {
@@ -587,7 +606,7 @@ export function ContactDetailView({
                         setEditIdentificacion(e.target.value);
                         if (identificacionError) setIdentificacionError('');
                       }}
-                      onBlur={(e) => validateIdentificacion(e.target.value)}
+                      onBlur={(e) => handleIdentificacionBlur(e.target.value)}
                       maxLength={13}
                       inputMode="numeric"
                       className="bg-muted border-border text-foreground h-8 text-sm"

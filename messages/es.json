@@ -388,7 +388,8 @@
       "identificacionInvalid": "La identificación no es válida",
       "campanaLabel": "Campaña",
       "campanaNone": "Sin campaña",
-      "loadingCampanas": "Cargando campañas..."
+      "loadingCampanas": "Cargando campañas...",
+      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente"
     },
     "detailView": {
       "tabs": {
@@ -460,7 +461,8 @@
       "identificacionInvalid": "La identificación no es válida",
       "campana": "Campaña",
       "campanaNone": "Sin campaña",
-      "origen": "Origen"
+      "origen": "Origen",
+      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente"
     },
     "importModal": {
       "title": "Importar contactos",
