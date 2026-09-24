@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { requireRole, toErrorResponse } from '@/lib/auth/account';
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,6 +14,11 @@ interface UpstreamProducto {
 }
 
 export async function GET() {
+  try {
+    const ctx = await requireRole('agent');
+    const limit = checkRateLimit(`crm:productos:${ctx.userId}`, RATE_LIMITS.crmLookup);
+    if (!limit.success) return rateLimitResponse(limit);
+
   const token = process.env.MAJOIS_CRM_API_TOKEN;
   const url = process.env.PRODUCTOS_API_URL;
 
@@ -58,10 +65,16 @@ export async function GET() {
 
     return NextResponse.json({ productos });
   } catch (err) {
+    if (err instanceof Error && (err.name === 'UnauthorizedError' || err.name === 'ForbiddenError')) {
+      return toErrorResponse(err);
+    }
     console.error('Failed to fetch productos', err);
     return NextResponse.json(
       { error: 'Failed to fetch productos' },
       { status: 502 },
     );
+  }
+  } catch (err) {
+    return toErrorResponse(err);
   }
 }

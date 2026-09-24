@@ -81,8 +81,17 @@ export async function requireApiKey(
   request: Request,
   scope?: ApiScope
 ): Promise<ApiKeyContext> {
+  // Invalid credentials must consume a separate budget too; otherwise a
+  // caller can bypass the per-key limiter by continuously presenting junk.
+  const forwardedFor = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim();
+  const clientAddress = forwardedFor || request.headers.get('x-real-ip') || 'unknown';
+  const invalidLimit = checkRateLimit(
+    `apikey-invalid:${clientAddress}`,
+    RATE_LIMITS.publicApiInvalid,
+  );
   const presented = extractKey(request);
   if (!presented || !looksLikeApiKey(presented)) {
+    if (!invalidLimit.success) throw rateLimited(invalidLimit);
     throw unauthorized();
   }
 
@@ -91,6 +100,7 @@ export async function requireApiKey(
     // Covers unknown, revoked, and expired keys alike — we don't
     // distinguish them on the wire so a probe can't learn whether a
     // key ever existed.
+    if (!invalidLimit.success) throw rateLimited(invalidLimit);
     throw unauthorized();
   }
 

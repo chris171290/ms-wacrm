@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { requireRole, toErrorResponse } from '@/lib/auth/account';
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 // No cachear a nivel de build; sí cacheamos la respuesta del upstream
 // unos minutos para no pegarle a la API externa en cada apertura de modal.
@@ -10,6 +12,11 @@ interface UpstreamCampana {
 }
 
 export async function GET() {
+  try {
+    const ctx = await requireRole('agent');
+    const limit = checkRateLimit(`crm:campanas:${ctx.userId}`, RATE_LIMITS.crmLookup);
+    if (!limit.success) return rateLimitResponse(limit);
+
   const token = process.env.MAJOIS_CRM_API_TOKEN;
   const url = process.env.CAMPANAS_API_URL;
 
@@ -48,10 +55,16 @@ export async function GET() {
 
     return NextResponse.json({ campanas });
   } catch (err) {
+    if (err instanceof Error && (err.name === 'UnauthorizedError' || err.name === 'ForbiddenError')) {
+      return toErrorResponse(err);
+    }
     console.error('Failed to fetch campanas', err);
     return NextResponse.json(
       { error: 'Failed to fetch campanas' },
       { status: 502 },
     );
+  }
+  } catch (err) {
+    return toErrorResponse(err);
   }
 }

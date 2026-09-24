@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { requireRole, toErrorResponse } from '@/lib/auth/account';
+import { checkRateLimit, rateLimitResponse, RATE_LIMITS } from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,11 +14,16 @@ interface UpstreamPerson {
 }
 
 export async function GET(request: Request) {
+  try {
+    const ctx = await requireRole('agent');
+    const limit = checkRateLimit(`crm:check-ventas:${ctx.userId}`, RATE_LIMITS.crmLookup);
+    if (!limit.success) return rateLimitResponse(limit);
+
   const { searchParams } = new URL(request.url);
   const ci = searchParams.get('ci');
 
-  if (!ci) {
-    return NextResponse.json({ error: 'Missing ci' }, { status: 400 });
+  if (!ci || !/^\d{5,20}$/.test(ci)) {
+    return NextResponse.json({ error: 'Invalid ci' }, { status: 400 });
   }
 
   const token = process.env.MAJOIS_CRM_API_TOKEN;
@@ -47,9 +54,7 @@ export async function GET(request: Request) {
     }
 
     const json = await res.json();
-    console.log(json)
     const people: UpstreamPerson[] = json?.data?.people ?? [];
-    console.log(people)
 
     // Suma las ventas (pointOfContactForOpportunities) de todas las
     // personas que matchean esa cédula — normalmente será una sola,
@@ -66,5 +71,8 @@ export async function GET(request: Request) {
   } catch (err) {
     console.error('Failed to check ventas by cedula', err);
     return NextResponse.json({ error: 'Failed to fetch' }, { status: 502 });
+  }
+  } catch (err) {
+    return toErrorResponse(err);
   }
 }
