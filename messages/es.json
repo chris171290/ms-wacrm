@@ -614,7 +614,11 @@
       "loadingEntidades": "Cargando entidades...",
       "numeroCuenta": "Número de cuenta",
       "numeroCuentaPlaceholder": "Número de cuenta",
-      "toastBankDetailsRequired": "Entidad bancaria y número de cuenta son obligatorios para transferencia"
+      "toastBankDetailsRequired": "Entidad bancaria y número de cuenta son obligatorios para transferencia",
+      "direccionCompleta": "Dirección completa",
+      "direccionCompletaPlaceholder": "Escribe la dirección completa",
+      "googleMapsLink": "Link de Google Maps",
+      "googleMapsLinkPlaceholder": "https://maps.google.com/..."
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

@@ -418,6 +418,8 @@ export interface Deal {
   forma_de_pago?: FormaPago | null;
   entidad_bancaria_id?: string | null;
   numero_cuenta?: string | null;
+  direccion_completa?: string | null;
+  google_maps_link?: string | null;
 }
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';

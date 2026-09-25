@@ -31,10 +31,12 @@ import {
   DollarSign,
   Loader2,
   Search,
+  MapPin,
+  ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { useProductos } from "@/hooks/use-productos";
+import { useProductos } from "@/hooks/use-productos"; 
 import { useEntidadesBancarias } from "@/hooks/use-entidades-bancarias";
 import { FORMA_PAGO_OPTIONS } from "@/lib/deals/constants";
 import type { FormaPago } from "@/types";
@@ -75,6 +77,8 @@ export function DealForm({
   const { productos, loading: loadingProductos } = useProductos();
   const [icc, setIcc] = useState("");
   const [mesh, setMesh] = useState(false);
+  const [direccionCompleta, setDireccionCompleta] = useState("");
+  const [googleMapsLink, setGoogleMapsLink] = useState("");
   const [formaDePago, setFormaDePago] = useState<FormaPago | "">("");
   const [entidadBancariaId, setEntidadBancariaId] = useState("");
   const [numeroCuenta, setNumeroCuenta] = useState("");
@@ -126,6 +130,8 @@ export function DealForm({
       setProductoId(deal.producto_id ?? "");
       setIcc(deal.icc ?? "");
       setMesh(deal.mesh ?? false);
+      setDireccionCompleta(deal.direccion_completa ?? "");
+      setGoogleMapsLink(deal.google_maps_link ?? "");
       setFormaDePago(deal.forma_de_pago ?? "");
       setEntidadBancariaId(deal.entidad_bancaria_id ?? "");
       setNumeroCuenta(deal.numero_cuenta ?? "");
@@ -141,6 +147,8 @@ export function DealForm({
       setProductoId("");
       setIcc("");
       setMesh(false);
+      setDireccionCompleta("");
+      setGoogleMapsLink("");
       setFormaDePago("");
       setEntidadBancariaId("");
       setNumeroCuenta("");
@@ -263,6 +271,8 @@ export function DealForm({
       producto_nombre: selectedProducto?.name ?? (deal ? deal.producto_nombre : null) ?? null,
       icc: icc.trim() || null,
       mesh,
+      direccion_completa: direccionCompleta.trim() || null,
+      google_maps_link: googleMapsLink.trim() || null,
       forma_de_pago: formaDePago || null,
       entidad_bancaria_id: isTransferencia ? entidadBancariaId || null : null,
       numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
@@ -563,6 +573,40 @@ export function DealForm({
                 className="min-h-[100px] border-border bg-muted text-foreground"
               />
             </div>
+            
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("direccionCompleta")}</Label>
+              <Textarea
+                value={direccionCompleta}
+                onChange={(e) => setDireccionCompleta(e.target.value)}
+                placeholder={t("direccionCompletaPlaceholder")}
+                className="min-h-[70px] border-border bg-muted text-foreground"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("googleMapsLink")}</Label>
+              <div className="relative">
+                <MapPin className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={googleMapsLink}
+                  onChange={(e) => setGoogleMapsLink(e.target.value)}
+                  placeholder={t("googleMapsLinkPlaceholder")}
+                  className="border-border bg-muted pl-7 pr-8 text-foreground"
+                />
+                {googleMapsLink && (
+                  <a
+                    href={googleMapsLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+              </div>
+            </div>
+
             <div className="grid gap-2">
               <Label className="text-muted-foreground">{t("icc")}</Label>
               <Input
