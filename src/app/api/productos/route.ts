@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic';
 interface UpstreamProducto {
   id: string;
   name: string;
-  precioBase?: {
+  tarifaBasica?: {
     amountMicros: number | null;
     currencyCode: string;
   } | null;
@@ -48,10 +48,10 @@ export async function GET() {
         id: p.id,
         name: p.name,
         precioBase:
-          p.precioBase && typeof p.precioBase.amountMicros === 'number'
+          p.tarifaBasica && typeof p.tarifaBasica.amountMicros === 'number'
             ? {
-                amount: p.precioBase.amountMicros / 1_000_000,
-                currencyCode: p.precioBase.currencyCode,
+                amount: p.tarifaBasica.amountMicros / 1_000_000,
+                currencyCode: p.tarifaBasica.currencyCode,
               }
             : null,
       }));
