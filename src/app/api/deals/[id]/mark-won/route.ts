@@ -31,6 +31,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal.direccion_completa) missing.push("direccion_completa");
     if (!deal.google_maps_link) missing.push("google_maps_link");
     if (!deal.forma_de_pago) missing.push("forma_de_pago");
+    if (!deal.orden_de_venta) missing.push("orden_de_venta");
 
     console.log(missing.length)
 
@@ -63,6 +64,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         mesh: deal.mesh,
         direccionCompleta: deal.direccion_completa,
         googleMapsLink: deal.google_maps_link,
+        ordenDeVenta: deal.orden_de_venta,
       });
     } catch (err) {
       console.error("[deals/mark-won] Twenty sync failed:", err);

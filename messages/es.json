@@ -618,6 +618,8 @@
       "direccionCompleta": "Dirección completa",
       "direccionCompletaPlaceholder": "Escribe la dirección completa",
       "googleMapsLink": "Link de Google Maps",
+      "ordenDeVenta": "Orden de venta",
+      "ordenDeVentaPlaceholder": "Número de orden de venta",
       "googleMapsLinkPlaceholder": "https://maps.google.com/...",
       "toastMissingFields": "Completa estos campos antes de marcar como ganado"
     },

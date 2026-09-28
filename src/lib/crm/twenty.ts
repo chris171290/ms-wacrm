@@ -126,6 +126,7 @@ export interface CreateOpportunityInput {
   mesh?: boolean | null;
   direccionCompleta?: string | null;
   googleMapsLink?: string | null;
+  ordenDeVenta?: string | null;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -146,6 +147,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     icc: { blocknote: null, markdown: input.icc ?? "" },
     mesh: meshToTwentyText(input.mesh),
     direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
+    ordenDeVenta: input.ordenDeVenta ?? null,
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };
 

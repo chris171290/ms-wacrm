@@ -79,6 +79,7 @@ export function DealForm({
   const [mesh, setMesh] = useState(false);
   const [direccionCompleta, setDireccionCompleta] = useState("");
   const [googleMapsLink, setGoogleMapsLink] = useState("");
+  const [ordenDeVenta, setOrdenDeVenta] = useState("");
   const [formaDePago, setFormaDePago] = useState<FormaPago | "">("");
   const [entidadBancariaId, setEntidadBancariaId] = useState("");
   const [numeroCuenta, setNumeroCuenta] = useState("");
@@ -132,6 +133,7 @@ export function DealForm({
       setMesh(deal.mesh ?? false);
       setDireccionCompleta(deal.direccion_completa ?? "");
       setGoogleMapsLink(deal.google_maps_link ?? "");
+      setOrdenDeVenta(deal.orden_de_venta ?? "");
       setFormaDePago(deal.forma_de_pago ?? "");
       setEntidadBancariaId(deal.entidad_bancaria_id ?? "");
       setNumeroCuenta(deal.numero_cuenta ?? "");
@@ -149,6 +151,7 @@ export function DealForm({
       setMesh(false);
       setDireccionCompleta("");
       setGoogleMapsLink("");
+      setOrdenDeVenta("");
       setFormaDePago("");
       setEntidadBancariaId("");
       setNumeroCuenta("");
@@ -273,6 +276,7 @@ export function DealForm({
       mesh,
       direccion_completa: direccionCompleta.trim() || null,
       google_maps_link: googleMapsLink.trim() || null,
+      orden_de_venta: ordenDeVenta.trim() || null,
       forma_de_pago: formaDePago || null,
       entidad_bancaria_id: isTransferencia ? entidadBancariaId || null : null,
       numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
@@ -333,6 +337,7 @@ export function DealForm({
       if (!direccionCompleta) missing.push(t("direccionCompleta"));
       if (!googleMapsLink) missing.push(t("googleMapsLink"));
       if (!formaDePago) missing.push(t("formaDePago"));
+      if (!ordenDeVenta) missing.push(t("ordenDeVenta"));
 
       if (missing.length > 0) {
         toast.error(`${t("toastMissingFields")}: ${missing.join(", ")}`);
@@ -655,7 +660,15 @@ export function DealForm({
                 className="border-border bg-muted text-foreground"
               />
             </div>
-
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("ordenDeVenta")}</Label>
+              <Input
+                value={ordenDeVenta}
+                onChange={(e) => setOrdenDeVenta(e.target.value)}
+                placeholder={t("ordenDeVentaPlaceholder")}
+                className="border-border bg-muted text-foreground"
+              />
+            </div>
             <div className="flex items-center gap-2.5">
               <Checkbox
                 id="deal-mesh"

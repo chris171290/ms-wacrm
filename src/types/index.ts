@@ -420,6 +420,7 @@ export interface Deal {
   numero_cuenta?: string | null;
   direccion_completa?: string | null;
   google_maps_link?: string | null;
+  orden_de_venta?: string | null;
 }
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
