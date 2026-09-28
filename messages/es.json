@@ -618,7 +618,8 @@
       "direccionCompleta": "Dirección completa",
       "direccionCompletaPlaceholder": "Escribe la dirección completa",
       "googleMapsLink": "Link de Google Maps",
-      "googleMapsLinkPlaceholder": "https://maps.google.com/..."
+      "googleMapsLinkPlaceholder": "https://maps.google.com/...",
+      "toastMissingFields": "Completa estos campos antes de marcar como ganado"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

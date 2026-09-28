@@ -321,6 +321,45 @@ export function DealForm({
 
   async function handleStatusChange(status: DealStatus) {
     if (!deal) return;
+
+    if (status === "won") {
+      const missing: string[] = [];
+      if (!productoId) missing.push(t("product"));
+      if (!contactId) missing.push(t("contact"));
+      if (!value || Number(value) <= 0) missing.push(t("value"));
+      if (!currency) missing.push(t("currency"));
+      if (!stageId) missing.push(t("stage"));
+      if (!assignedTo) missing.push(t("assignedTo"));
+      if (!direccionCompleta) missing.push(t("direccionCompleta"));
+      if (!googleMapsLink) missing.push(t("googleMapsLink"));
+      if (!formaDePago) missing.push(t("formaDePago"));
+
+      if (missing.length > 0) {
+        toast.error(`${t("toastMissingFields")}: ${missing.join(", ")}`);
+        return;
+      }
+
+      setStatusAction("won");
+      try {
+        const res = await fetch(`/api/deals/${deal.id}/mark-won`, { method: "POST" });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast.error(json?.error || t("toastFailedStatus"));
+          return;
+        }
+        toast.success(t("toastMarkedWon"));
+        onOpenChange(false);
+        onSaved();
+      } catch (err) {
+        console.error(err);
+        toast.error(t("toastFailedStatus"));
+      } finally {
+        setStatusAction(null);
+      }
+      return;
+    }
+
+
     setStatusAction(status);
     const { error } = await supabase
       .from("deals")
