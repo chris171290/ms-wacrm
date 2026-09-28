@@ -371,7 +371,7 @@ export function DealForm({
       return;
     }
     toast.success(
-      status === "won" ? t("toastMarkedWon") : status === "lost" ? t("toastMarkedLost") : t("toastReopened"),
+      status === "lost" ? t("toastMarkedLost") : t("toastReopened"),
     );
     onOpenChange(false);
     onSaved();
