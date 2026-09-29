@@ -290,7 +290,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
           <div className="my-4 border-t border-border" />
 
           <ul className="flex flex-col gap-1">
-            {bottomNavItems.map((item) => {
+            {/* {bottomNavItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               return (
                 <li key={item.href}>
@@ -308,7 +308,7 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
                   </Link>
                 </li>
               );
-            })}
+            })} */}
           </ul>
         </nav>
 
