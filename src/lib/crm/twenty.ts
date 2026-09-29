@@ -127,6 +127,7 @@ export interface CreateOpportunityInput {
   direccionCompleta?: string | null;
   googleMapsLink?: string | null;
   ordenDeVenta?: string | null;
+  ownerId?: string | null;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -134,6 +135,19 @@ function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null 
   return mesh ? "SI" : "NO";
 }
 
+export async function findTwentyWorkspaceMemberByEmail(email: string): Promise<{ id: string } | null> {
+  const filter = `userEmail[eq]:"${email}"`;
+  const url = `${TWENTY_BASE_URL}/rest/workspaceMembers?filter=${encodeURIComponent(filter)}`;
+
+  const res = await fetch(url, { method: "GET", headers: authHeaders() });
+  if (!res.ok) {
+    throw new Error(`Twenty: error al buscar workspaceMember (${res.status}): ${await res.text().catch(() => "")}`);
+  }
+
+  const json = await res.json();
+  const member = json?.data?.workspaceMembers?.[0];
+  return member?.id ? { id: member.id } : null;
+}
 
 
 export async function createTwentyOpportunity(input: CreateOpportunityInput) {
@@ -148,6 +162,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     mesh: meshToTwentyText(input.mesh),
     direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
     ordenDeVenta: input.ordenDeVenta ?? null,
+    ownerId: input.ownerId ?? null,
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };
 

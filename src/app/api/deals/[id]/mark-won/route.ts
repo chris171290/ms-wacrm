@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireRole, toErrorResponse } from "@/lib/auth/account";
-import { createTwentyPerson, createTwentyOpportunity } from "@/lib/crm/twenty";
+import { createTwentyPerson, createTwentyOpportunity, findTwentyWorkspaceMemberByEmail } from "@/lib/crm/twenty";
+import { convertSegmentPathToStaticExportFilename } from "next/dist/shared/lib/segment-cache/segment-value-encoding";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -9,7 +10,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     const { data: deal, error } = await supabase
       .from("deals")
-      .select("*, contact:contacts(*)")
+      //.select("*, contact:contacts(*)")
+      .select("*, contact:contacts(*), assignee:profiles!deals_assigned_to_fkey(email)")
       .eq("id", dealId)
       .maybeSingle();
 
@@ -20,6 +22,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal) {
       return NextResponse.json({ error: "Deal not found" }, { status: 404 });
     }
+
+    console.log(deal)
 
     const missing: string[] = [];
     if (!deal.producto_id) missing.push("producto");
@@ -33,7 +37,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal.forma_de_pago) missing.push("forma_de_pago");
     if (!deal.orden_de_venta) missing.push("orden_de_venta");
 
-    console.log(missing.length)
+    console.log(missing)
 
     if (missing.length > 0) {
       return NextResponse.json({ error: "Faltan campos obligatorios", missing }, { status: 400 });
@@ -42,6 +46,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     let person: { id: string };
     let opportunity: { id: string };
     try {
+      console.log(deal.assignee.email)
+      const owner = deal.assignee?.email
+        ? await findTwentyWorkspaceMemberByEmail(deal.assignee.email)
+        : null;
+
       person = await createTwentyPerson({
         name: deal.contact.name || deal.contact.phone,
         identificacion: deal.contact.identificacion,
@@ -65,6 +74,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         direccionCompleta: deal.direccion_completa,
         googleMapsLink: deal.google_maps_link,
         ordenDeVenta: deal.orden_de_venta,
+        ownerId: owner?.id ?? null,
       });
     } catch (err) {
       console.error("[deals/mark-won] Twenty sync failed:", err);

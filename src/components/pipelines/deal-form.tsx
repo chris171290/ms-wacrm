@@ -345,6 +345,44 @@ export function DealForm({
       }
 
       setStatusAction("won");
+
+      
+      // Antes de sincronizar con Twenty, hay que guardar lo que esté
+      // en el formulario ahora mismo — si no, la validación del cliente
+      // puede pasar con datos que todavía no existen en la base.
+      const isTransferencia = formaDePago === "Transferencia bancaria";
+      const selectedProducto = productos.find((p) => p.id === productoId) ?? null;
+      const { error: saveError } = await supabase
+        .from("deals")
+        .update({
+          title: selectedProducto?.name ?? deal.title,
+          value: parseFloat(value) || 0,
+          currency,
+          contact_id: contactId,
+          pipeline_id: pipelineId,
+          stage_id: stageId,
+          assigned_to: assignedTo || null,
+          notes: notes.trim() || null,
+          expected_close_date: expectedCloseDate || null,
+          producto_id: productoId,
+          producto_nombre: selectedProducto?.name ?? deal.producto_nombre ?? null,
+          icc: icc.trim() || null,
+          mesh,
+          direccion_completa: direccionCompleta.trim() || null,
+          google_maps_link: googleMapsLink.trim() || null,
+          orden_de_venta: ordenDeVenta.trim() || null,
+          forma_de_pago: formaDePago || null,
+          entidad_bancaria_id: isTransferencia ? entidadBancariaId || null : null,
+          numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
+        })
+        .eq("id", deal.id);
+
+      if (saveError) {
+        toast.error(t("toastFailedSave"));
+        setStatusAction(null);
+        return;
+      }
+
       try {
         const res = await fetch(`/api/deals/${deal.id}/mark-won`, { method: "POST" });
         const json = await res.json().catch(() => ({}));
