@@ -163,6 +163,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
     ordenDeVenta: input.ordenDeVenta ?? null,
     ownerId: input.ownerId ?? null,
+    fechaAltaEInstalacion: todayInEcuador(),
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };
 
@@ -178,4 +179,13 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
   const opportunity = json?.data?.createOpportunity ?? json;
   if (!opportunity?.id) throw new Error("Twenty: oportunidad creada sin id en la respuesta");
   return opportunity as { id: string };
+}
+
+function todayInEcuador(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Guayaquil",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 }

@@ -98,6 +98,15 @@ export function canViewOnly(role: AccountRole): boolean {
   return role === "viewer";
 }
 
+/**
+ * Owner / admin: el área de Settings es configuración de cuenta
+ * completa (WhatsApp, plantillas, miembros, billing). Los agentes
+ * no tienen ninguna razón operativa para entrar ahí.
+ */
+export function canAccessSettings(role: AccountRole): boolean {
+  return hasMinRole(role, "admin");
+}
+
 /** Owner only: irreversible destructive operations. */
 export function canDeleteAccount(role: AccountRole): boolean {
   return role === "owner";
