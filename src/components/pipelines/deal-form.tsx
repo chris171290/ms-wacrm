@@ -63,7 +63,8 @@ export function DealForm({
 }: DealFormProps) {
   const t = useTranslations("Pipelines.form");
   const supabase = createClient();
-  const { accountId, defaultCurrency } = useAuth();
+  const { accountId, defaultCurrency, accountRole } = useAuth();
+  const isAgent = accountRole === "agent";
 
   // const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
@@ -793,38 +794,41 @@ export function DealForm({
                 <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
                   {t("status")}
                 </p>
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange("won")}
-                    disabled={!!statusAction || deal.status === "won"}
-                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                  >
-                    {statusAction === "won" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Check className="mr-1 h-4 w-4" />
-                        {t("markAsWon")}
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => handleStatusChange("lost")}
-                    disabled={!!statusAction || deal.status === "lost"}
-                    className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {statusAction === "lost" ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <>
-                        <X className="mr-1 h-4 w-4" />
-                        {t("markAsLost")}
-                      </>
-                    )}
-                  </Button>
-                </div>
+                {/* <div className="flex gap-2"> */}
+                {!isAgent && (
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => handleStatusChange("won")}
+                      disabled={!!statusAction || deal.status === "won"}
+                      className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                    >
+                      {statusAction === "won" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <Check className="mr-1 h-4 w-4" />
+                          {t("markAsWon")}
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => handleStatusChange("lost")}
+                      disabled={!!statusAction || deal.status === "lost"}
+                      className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                    >
+                      {statusAction === "lost" ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <>
+                          <X className="mr-1 h-4 w-4" />
+                          {t("markAsLost")}
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
                 {deal.status && deal.status !== "open" && (
                   <Button
                     type="button"
