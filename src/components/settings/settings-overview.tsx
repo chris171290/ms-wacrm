@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
+import { useCan } from '@/hooks/use-can';
 import { useTheme } from '@/hooks/use-theme';
 import { THEMES } from '@/lib/themes';
 import { CURRENCIES } from '@/lib/currency';
@@ -38,6 +39,7 @@ export function SettingsOverview({
 }) {
   const { user, profile, accountId, accountRole, defaultCurrency, canManageMembers } =
     useAuth();
+  const canAccessWorkspace = useCan('edit-settings');
   const { mode, theme } = useTheme();
   const t = useTranslations('Settings.overview');
   const tRoles = useTranslations('Settings.roles');
@@ -153,7 +155,7 @@ export function SettingsOverview({
 
   // Per-tile loading + subtitle. `null` counts render as a graceful
   // fallback so a single failed query never blanks a tile.
-  const tiles: {
+  const allTiles: {
     section: SettingsSection;
     loading: boolean;
     subtitle: ReactNode;
@@ -218,6 +220,9 @@ export function SettingsOverview({
       subtitle: t('appearance', { mode: cap(mode), theme: themeName }),
     },
   ];
+  const tiles = allTiles.filter(
+    ({ section }) => SECTION_META[section].group !== 'workspace' || canAccessWorkspace,
+  );
 
   return (
     <section className="animate-in fade-in-50 duration-200">
