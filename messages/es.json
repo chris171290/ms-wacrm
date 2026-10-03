@@ -623,7 +623,11 @@
       "ordenDeVenta": "Orden de venta",
       "ordenDeVentaPlaceholder": "Número de orden de venta",
       "googleMapsLinkPlaceholder": "https://maps.google.com/...",
-      "toastMissingFields": "Completa estos campos antes de marcar como ganado"
+      "toastMissingFields": "Completa estos campos antes de marcar como ganado",
+      "tipoDeVenta": "Tipo de Venta",
+      "selectTipoDeVenta": "Selecciona un tipo de venta",
+      "operadora": "Operadora",
+      "selectOperadora": "Selecciona una operadora"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

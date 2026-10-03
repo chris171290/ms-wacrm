@@ -128,6 +128,8 @@ export interface CreateOpportunityInput {
   googleMapsLink?: string | null;
   ordenDeVenta?: string | null;
   ownerId?: string | null;
+  tipoDeVenta?: string | null;
+  operadora?: string | null;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -164,6 +166,8 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     ordenDeVenta: input.ordenDeVenta ?? null,
     ownerId: input.ownerId ?? null,
     fechaAltaEInstalacion: todayInEcuador(),
+    tipoDeVenta: mapTipoVenta(input.tipoDeVenta),
+    operadora: mapOperadora(input.operadora),
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };
 
@@ -188,4 +192,31 @@ function todayInEcuador(): string {
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+}
+
+// Mismo patrón que formaDePago: enum de texto en Twenty. Puse el
+// valor más probable (mayúsculas, sin tildes, snake_case) siguiendo
+// la convención que ya vimos en EFECTIVO/ENTIDAD_BANCARIA/OTROS y
+// SI/NO — TODO: confirmar contra el error 400 de Twenty si no coincide.
+const TIPO_VENTA_TO_TWENTY: Record<string, string> = {
+  "Línea Nueva": "LINEA_NUEVA",
+  "Portabilidad Prepago": "PORTABILIDAD_PREPAGO",
+  "Migración": "MIGRACION",
+};
+
+const OPERADORA_TO_TWENTY: Record<string, string> = {
+  "Claro": "CLARO",
+  "Movistar": "MOVISTAR",
+  "CNT": "CNT",
+  "Tuenti": "TUENTI",
+};
+
+export function mapTipoVenta(value: string | null | undefined) {
+  if (!value) return null;
+  return TIPO_VENTA_TO_TWENTY[value] ?? null;
+}
+
+export function mapOperadora(value: string | null | undefined) {
+  if (!value) return null;
+  return OPERADORA_TO_TWENTY[value] ?? null;
 }

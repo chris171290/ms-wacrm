@@ -75,6 +75,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         googleMapsLink: deal.google_maps_link,
         ordenDeVenta: deal.orden_de_venta,
         ownerId: owner?.id ?? null,
+        tipoDeVenta: deal.tipo_de_venta,
+        operadora: deal.operadora,
       });
     } catch (err) {
       console.error("[deals/mark-won] Twenty sync failed:", err);

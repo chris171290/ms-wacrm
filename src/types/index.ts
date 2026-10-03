@@ -421,7 +421,12 @@ export interface Deal {
   direccion_completa?: string | null;
   google_maps_link?: string | null;
   orden_de_venta?: string | null;
+  tipo_de_venta?: TipoVenta | null;
+  operadora?: Operadora | null;
 }
+
+export type TipoVenta = 'Línea Nueva' | 'Portabilidad Prepago' | 'Migración';
+export type Operadora = 'Claro' | 'Movistar' | 'CNT' | 'Tuenti';
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
 export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'replied' | 'failed';

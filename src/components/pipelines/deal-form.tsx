@@ -38,8 +38,8 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useProductos } from "@/hooks/use-productos"; 
 import { useEntidadesBancarias } from "@/hooks/use-entidades-bancarias";
-import { FORMA_PAGO_OPTIONS } from "@/lib/deals/constants";
-import type { FormaPago } from "@/types";
+import { FORMA_PAGO_OPTIONS, TIPO_VENTA_OPTIONS, OPERADORA_OPTIONS } from "@/lib/deals/constants";
+import type { FormaPago, TipoVenta, Operadora } from "@/types";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface DealFormProps {
@@ -82,6 +82,8 @@ export function DealForm({
   const [googleMapsLink, setGoogleMapsLink] = useState("");
   const [ordenDeVenta, setOrdenDeVenta] = useState("");
   const [formaDePago, setFormaDePago] = useState<FormaPago | "">("");
+  const [tipoDeVenta, setTipoDeVenta] = useState<TipoVenta | "">("");
+  const [operadora, setOperadora] = useState<Operadora | "">("");
   const [entidadBancariaId, setEntidadBancariaId] = useState("");
   const [numeroCuenta, setNumeroCuenta] = useState("");
   const { entidades: entidadesBancarias, loading: loadingEntidades } = useEntidadesBancarias();
@@ -136,6 +138,8 @@ export function DealForm({
       setGoogleMapsLink(deal.google_maps_link ?? "");
       setOrdenDeVenta(deal.orden_de_venta ?? "");
       setFormaDePago(deal.forma_de_pago ?? "");
+      setTipoDeVenta(deal.tipo_de_venta ?? "");
+      setOperadora(deal.operadora ?? "");
       setEntidadBancariaId(deal.entidad_bancaria_id ?? "");
       setNumeroCuenta(deal.numero_cuenta ?? "");
     } else {
@@ -154,6 +158,8 @@ export function DealForm({
       setGoogleMapsLink("");
       setOrdenDeVenta("");
       setFormaDePago("");
+      setTipoDeVenta("");
+      setOperadora("");
       setEntidadBancariaId("");
       setNumeroCuenta("");
     }
@@ -279,6 +285,8 @@ export function DealForm({
       google_maps_link: googleMapsLink.trim() || null,
       orden_de_venta: ordenDeVenta.trim() || null,
       forma_de_pago: formaDePago || null,
+      tipo_de_venta: tipoDeVenta || null,
+      operadora: operadora || null,
       entidad_bancaria_id: isTransferencia ? entidadBancariaId || null : null,
       numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
     };
@@ -373,6 +381,8 @@ export function DealForm({
           google_maps_link: googleMapsLink.trim() || null,
           orden_de_venta: ordenDeVenta.trim() || null,
           forma_de_pago: formaDePago || null,
+          tipo_de_venta: tipoDeVenta || null,
+          operadora: operadora || null,
           entidad_bancaria_id: isTransferencia ? entidadBancariaId || null : null,
           numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
         })
@@ -746,6 +756,46 @@ export function DealForm({
                 ))}
               </select>
             </div>
+
+            {!isAgent && (
+              <>
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">{t("tipoDeVenta")}</Label>
+                  <select
+                    value={tipoDeVenta}
+                    onChange={(e) => setTipoDeVenta(e.target.value as TipoVenta | "")}
+                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                  >
+                    <option value="" disabled>
+                      {t("selectTipoDeVenta")}
+                    </option>
+                    {TIPO_VENTA_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">{t("operadora")}</Label>
+                  <select
+                    value={operadora}
+                    onChange={(e) => setOperadora(e.target.value as Operadora | "")}
+                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                  >
+                    <option value="" disabled>
+                      {t("selectOperadora")}
+                    </option>
+                    {OPERADORA_OPTIONS.map((option) => (
+                      <option key={option} value={option}>
+                        {option}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}            
 
             {formaDePago === "Transferencia bancaria" && (
               <>
