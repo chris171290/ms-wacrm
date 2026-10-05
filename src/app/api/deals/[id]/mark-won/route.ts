@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole, toErrorResponse } from "@/lib/auth/account";
-import { createTwentyPerson, createTwentyOpportunity, findTwentyWorkspaceMemberByEmail } from "@/lib/crm/twenty";
+import { createTwentyPerson, createTwentyOpportunity, findTwentyWorkspaceMemberByEmail, findOrCreateTwentyPerson } from "@/lib/crm/twenty";
 import { convertSegmentPathToStaticExportFilename } from "next/dist/shared/lib/segment-cache/segment-value-encoding";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -36,6 +36,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal.google_maps_link) missing.push("google_maps_link");
     if (!deal.forma_de_pago) missing.push("forma_de_pago");
     if (!deal.orden_de_venta) missing.push("orden_de_venta");
+    if (!deal.tipo_de_venta) missing.push("tipo_de_venta");
+    if (!deal.operadora) missing.push("operadora");
+    if (!deal.contact?.identificacion) missing.push("contacto.identificacion");
 
     console.log(missing)
 
@@ -51,7 +54,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         ? await findTwentyWorkspaceMemberByEmail(deal.assignee.email)
         : null;
 
-      person = await createTwentyPerson({
+      person = await findOrCreateTwentyPerson({
         name: deal.contact.name || deal.contact.phone,
         identificacion: deal.contact.identificacion,
         phone: deal.contact.phone,
@@ -87,7 +90,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       );
     }
 
-    const { error: updateError } = await supabase.from("deals").update({ status: "won" }).eq("id", dealId);
+    const { error: updateError } = await supabase
+       .from("deals")
+       .update({
+         status: "won",
+         esta_integrado: true,
+         twenty_opportunity_id: opportunity.id,
+       })
+       .eq("id", dealId);
     if (updateError) {
       console.error("[deals/mark-won] status update error:", updateError);
       return NextResponse.json(

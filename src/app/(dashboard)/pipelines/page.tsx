@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Pipeline, PipelineStage, Deal } from "@/types";
 import { PipelineBoard } from "@/components/pipelines/pipeline-board";
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GitBranch, Plus, ChevronDown, Settings } from "lucide-react";
+import { GitBranch, Plus, ChevronDown, Settings, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/use-can";
 import { useAuth } from "@/hooks/use-auth";
@@ -51,6 +51,8 @@ export default function PipelinesPage() {
   const canEditSettings = useCan("edit-settings");
   const canCreateDeals = useCan("send-messages");
   const { accountId } = useAuth();
+  const { accountRole } = useAuth();
+  const canFilterByAgent = accountRole !== "agent";  
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
@@ -69,6 +71,15 @@ export default function PipelinesPage() {
   const [dealFormOpen, setDealFormOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [defaultStageId, setDefaultStageId] = useState<string>("");
+
+
+  // Filtros del tablero — solo filtran en memoria, no vuelven a pedir
+  // datos al servidor.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "won" | "lost">("all");
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   // Guard against double-seeding (React StrictMode double-effect in dev).
   const seedAttempted = useRef(false);
@@ -108,6 +119,55 @@ export default function PipelinesPage() {
     },
     [supabase],
   );
+
+  const assignableAgents = useMemo(() => {
+    const map = new Map<string, { id: string; full_name: string }>();
+    for (const d of deals) {
+      const assignee = (d as any).assignee;
+      if (assignee?.id) map.set(assignee.id, assignee);
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.full_name.localeCompare(b.full_name),
+    );
+  }, [deals]);
+
+  function normalize(s: string) {
+    return s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  const filteredDeals = useMemo(() => {
+    const q = normalize(searchQuery.trim());
+    return deals.filter((d) => {
+      if (statusFilter !== "all" && d.status !== statusFilter) return false;
+      if (agentFilter !== "all" && d.assigned_to !== agentFilter) return false;
+      if (dateFrom && d.created_at < dateFrom) return false;
+      if (dateTo && d.created_at > `${dateTo}T23:59:59`) return false;
+      if (q) {
+        const contact = (d as any).contact;
+        const haystack = normalize(
+          [contact?.name, contact?.phone, contact?.identificacion, d.producto_nombre, d.orden_de_venta]
+            .filter(Boolean)
+            .join(" "),
+        );
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [deals, statusFilter, agentFilter, dateFrom, dateTo, searchQuery]);
+
+  const hasActiveFilters =
+    !!searchQuery || statusFilter !== "all" || agentFilter !== "all" || !!dateFrom || !!dateTo;
+
+  function clearFilters() {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setAgentFilter("all");
+    setDateFrom("");
+    setDateTo("");
+  }
 
   const seedDefaultPipeline = useCallback(async (): Promise<Pipeline | null> => {
     const {
@@ -412,10 +472,75 @@ export default function PipelinesPage() {
         </div>
       ) : (
         <>
-          <PipelineAnalytics stages={stages} deals={deals} />
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
+            <div className="relative min-w-[220px] flex-1">
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={t("searchPlaceholder")}
+                className="border-border bg-muted pl-8 text-foreground"
+              />
+            </div>
+
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+              className="h-9 rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+            >
+              <option value="all">{t("filterAllStatus")}</option>
+              <option value="open">{t("filterOpen")}</option>
+              <option value="won">{t("filterWon")}</option>
+              <option value="lost">{t("filterLost")}</option>
+            </select>
+
+            {canFilterByAgent && (
+              <select
+                value={agentFilter}
+                onChange={(e) => setAgentFilter(e.target.value)}
+                className="h-9 rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+              >
+                <option value="all">{t("filterAllAgents")}</option>
+                {assignableAgents.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.full_name}
+                  </option>
+                ))}
+              </select>
+            )}
+
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <span>{t("dateFromLabel")}</span>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="h-9 w-[150px] border-border bg-muted text-foreground"
+              />
+              <span>{t("dateToLabel")}</span>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="h-9 w-[150px] border-border bg-muted text-foreground"
+              />
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="ml-auto flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("clearFilters")}
+              </button>
+            )}
+          </div>
+          <PipelineAnalytics stages={stages} deals={filteredDeals} />
           <PipelineBoard
             stages={stages}
-            deals={deals}
+            deals={filteredDeals}
             onDealMoved={handleDealMoved}
             onAddDeal={handleAddDeal}
             onEditDeal={handleEditDeal}

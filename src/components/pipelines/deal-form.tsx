@@ -63,8 +63,11 @@ export function DealForm({
 }: DealFormProps) {
   const t = useTranslations("Pipelines.form");
   const supabase = createClient();
-  const { accountId, defaultCurrency, accountRole } = useAuth();
+  const { accountId, defaultCurrency, accountRole } = useAuth(); 
   const isAgent = accountRole === "agent";
+  const isLocked = !!deal?.esta_integrado;
+  const canUnlock = accountRole === "admin" || accountRole === "owner";
+  const [unlocking, setUnlocking] = useState(false);
 
   // const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
@@ -111,6 +114,22 @@ export function DealForm({
 
   function contactLabel(c: Contact) {
     return c.name || c.phone || "";
+  }
+
+  async function handleUnlock() {
+    if (!deal) return;
+    setUnlocking(true);
+    const { error } = await supabase
+      .from("deals")
+      .update({ esta_integrado: false, status: "open" })
+      .eq("id", deal.id);
+    setUnlocking(false);
+    if (error) {
+      toast.error(t("toastFailedUnlock"));
+      return;
+    }
+    toast.success(t("toastUnlocked"));
+    onSaved();
   }
 
   // Reset the form fields every time the sheet opens or its input
@@ -347,6 +366,8 @@ export function DealForm({
       if (!googleMapsLink) missing.push(t("googleMapsLink"));
       if (!formaDePago) missing.push(t("formaDePago"));
       if (!ordenDeVenta) missing.push(t("ordenDeVenta"));
+      if (!tipoDeVenta) missing.push(t("tipoDeVenta"));
+      if (!operadora) missing.push(t("operadora"));      
 
       if (missing.length > 0) {
         toast.error(`${t("toastMissingFields")}: ${missing.join(", ")}`);
@@ -478,483 +499,516 @@ export function DealForm({
                 className="border-border bg-muted text-foreground"
               />
             </div> */}
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("product")}</Label>
-              <select
-                value={productoId}
-                onChange={(e) => setProductoId(e.target.value)}
-                disabled={loadingProductos}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
-              >
-                <option value="">{t("noProduct")}</option>
-                {productos.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-              {loadingProductos && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  {t("loadingProducts")}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-2 relative" ref={contactWrapperRef}>
-              <Label className="text-muted-foreground">{t("contact")}</Label>
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={contactInputValue}
-                  onChange={(e) => {
-                    setContactQuery(e.target.value);
-                    setContactDropdownOpen(true);
-                    if (contactId) setContactId("");
-                  }}
-                  onFocus={() => {
-                    setContactQuery(contactInputValue);
-                    setContactDropdownOpen(true);
-                  }}
-                  placeholder={t("selectContact")}
-                  className="border-border bg-muted pl-7 pr-7 text-foreground"
-                />
-                {contactId && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setContactId("");
-                      setContactQuery("");
-                      setContactDropdownOpen(true);
-                    }}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            {isLocked && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{t("lockedBanner")}</span>
+                  {canUnlock && (
+                    <button
+                      type="button"
+                      onClick={handleUnlock}
+                      disabled={unlocking}
+                      className="shrink-0 rounded bg-amber-500/20 px-2 py-1 font-medium text-amber-200 hover:bg-amber-500/30 disabled:opacity-50"
+                    >
+                      {unlocking ? t("unlocking") : t("unlockDeal")}
+                    </button>
+                  )}
+                </div>
+                {deal?.twenty_opportunity_id && (
+                  <a
+                    href={`https://ecufonemire.majoissolutions.com/object/opportunity/${deal.twenty_opportunity_id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1.5 inline-flex items-center gap-1 text-amber-200/80 hover:text-amber-100"
                   >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
+                    <ExternalLink className="h-3 w-3" />
+                    {t("viewInTwenty")}
+                  </a>
+                )}
+              </div>
+            )}
+            <fieldset disabled={isLocked} className="contents">
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("product")}</Label>
+                <select
+                  value={productoId}
+                  onChange={(e) => setProductoId(e.target.value)}
+                  disabled={loadingProductos}
+                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
+                >
+                  <option value="">{t("noProduct")}</option>
+                  {productos.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                {loadingProductos && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    {t("loadingProducts")}
+                  </p>
                 )}
               </div>
 
-              {contactDropdownOpen && (
-                <div className="absolute top-full left-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
-                  {filteredContacts.length === 0 ? (
-                    <p className="p-3 text-xs text-muted-foreground">
-                      {t("noContactsFound")}
-                    </p>
-                  ) : (
-                    filteredContacts.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        onClick={() => {
-                          setContactId(c.id);
-                          setContactQuery(contactLabel(c));
-                          setContactDropdownOpen(false);
-                        }}
-                        className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted ${
-                          c.id === contactId ? "bg-muted" : ""
-                        }`}
-                      >
-                        <span className="text-foreground">{contactLabel(c)}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {[c.phone, (c as any).email, (c as any).cedula]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </span>
-                      </button>
-                    ))
+              <div className="grid gap-2 relative" ref={contactWrapperRef}>
+                <Label className="text-muted-foreground">{t("contact")}</Label>
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={contactInputValue}
+                    onChange={(e) => {
+                      setContactQuery(e.target.value);
+                      setContactDropdownOpen(true);
+                      if (contactId) setContactId("");
+                    }}
+                    onFocus={() => {
+                      setContactQuery(contactInputValue);
+                      setContactDropdownOpen(true);
+                    }}
+                    placeholder={t("selectContact")}
+                    className="border-border bg-muted pl-7 pr-7 text-foreground"
+                  />
+                  {contactId && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setContactId("");
+                        setContactQuery("");
+                        setContactDropdownOpen(true);
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
                   )}
                 </div>
-              )}              
 
-              {linkedConversation && (
-                <Link
-                  href="/inbox"
-                  className="mt-1 inline-flex items-center gap-1.5 self-start rounded-md bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20"
-                >
-                  <MessageSquare className="h-3 w-3" />
-                  {t("linkToConversation")}
-                </Link>
-              )}
-            </div>
+                {contactDropdownOpen && (
+                  <div className="absolute top-full left-0 z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-border bg-popover shadow-lg">
+                    {filteredContacts.length === 0 ? (
+                      <p className="p-3 text-xs text-muted-foreground">
+                        {t("noContactsFound")}
+                      </p>
+                    ) : (
+                      filteredContacts.map((c) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => {
+                            setContactId(c.id);
+                            setContactQuery(contactLabel(c));
+                            setContactDropdownOpen(false);
+                          }}
+                          className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted ${
+                            c.id === contactId ? "bg-muted" : ""
+                          }`}
+                        >
+                          <span className="text-foreground">{contactLabel(c)}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {[c.phone, (c as any).email, (c as any).cedula]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}              
 
-            <div className="grid grid-cols-[1fr_110px] gap-3">
-              <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("value")}</Label>
-                <div className="relative">
-                  <DollarSign className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    value={value}
-                    onChange={(e) => setValue(e.target.value)}
-                    disabled={!!selectedProductoPrecio}
-                    placeholder="0"
-                    // className="border-border bg-muted pl-7 text-foreground"
-                    className="border-border bg-muted pl-7 text-foreground disabled:opacity-60"
-                  />
-                </div>
+                {linkedConversation && (
+                  <Link
+                    href="/inbox"
+                    className="mt-1 inline-flex items-center gap-1.5 self-start rounded-md bg-primary/10 px-2 py-1 text-xs text-primary hover:bg-primary/20"
+                  >
+                    <MessageSquare className="h-3 w-3" />
+                    {t("linkToConversation")}
+                  </Link>
+                )}
               </div>
+
+              <div className="grid grid-cols-[1fr_110px] gap-3">
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">{t("value")}</Label>
+                  <div className="relative">
+                    <DollarSign className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      type="number"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      disabled={!!selectedProductoPrecio}
+                      placeholder="0"
+                      // className="border-border bg-muted pl-7 text-foreground"
+                      className="border-border bg-muted pl-7 text-foreground disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <Label className="text-muted-foreground">{t("currency")}</Label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    disabled={!!selectedProductoPrecio}
+                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c.code} value={c.code}>
+                        {c.code}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                {selectedProductoPrecio && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("valueFromProduct")}
+                  </p>
+                )}
+              </div>
+
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("currency")}</Label>
+                <Label className="text-muted-foreground">{t("expectedCloseDate")}</Label>
+                <Input
+                  type="date"
+                  value={expectedCloseDate}
+                  onChange={(e) => setExpectedCloseDate(e.target.value)}
+                  className="border-border bg-muted text-foreground scheme-light"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("stage")}</Label>
                 <select
-                  value={currency}
-                  onChange={(e) => setCurrency(e.target.value)}
-                  disabled={!!selectedProductoPrecio}
+                  value={stageId}
+                  onChange={(e) => setStageId(e.target.value)}
                   className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
                 >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.code}
+                  {stages.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
                     </option>
                   ))}
                 </select>
               </div>
-              {selectedProductoPrecio && (
-                <p className="text-xs text-muted-foreground">
-                  {t("valueFromProduct")}
-                </p>
-              )}
-            </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("expectedCloseDate")}</Label>
-              <Input
-                type="date"
-                value={expectedCloseDate}
-                onChange={(e) => setExpectedCloseDate(e.target.value)}
-                className="border-border bg-muted text-foreground scheme-light"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("stage")}</Label>
-              <select
-                value={stageId}
-                onChange={(e) => setStageId(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
-                {stages.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("assignedTo")}</Label>
-              <select
-                value={assignedTo}
-                onChange={(e) => setAssignedTo(e.target.value)}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
-                <option value="">{t("unassigned")}</option>
-                {profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.full_name || p.email}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("notes")}</Label>
-              <Textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                placeholder={t("notesPlaceholder")}
-                className="min-h-[100px] border-border bg-muted text-foreground"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("direccionCompleta")}</Label>
-              <Textarea
-                value={direccionCompleta}
-                onChange={(e) => setDireccionCompleta(e.target.value)}
-                placeholder={t("direccionCompletaPlaceholder")}
-                className="min-h-[70px] border-border bg-muted text-foreground"
-              />
-            </div>
-
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("googleMapsLink")}</Label>
-              <div className="relative">
-                <MapPin className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={googleMapsLink}
-                  onChange={(e) => setGoogleMapsLink(e.target.value)}
-                  placeholder={t("googleMapsLinkPlaceholder")}
-                  className="border-border bg-muted pl-7 pr-8 text-foreground"
-                />
-                {googleMapsLink && (
-                  <a
-                    href={googleMapsLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("assignedTo")}</Label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                >
+                  <option value="">{t("unassigned")}</option>
+                  {profiles.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.full_name || p.email}
+                    </option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("icc")}</Label>
-              <Input
-                value={icc}
-                onChange={(e) => setIcc(e.target.value)}
-                placeholder={t("iccPlaceholder")}
-                className="border-border bg-muted text-foreground"
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("ordenDeVenta")}</Label>
-              <Input
-                value={ordenDeVenta}
-                onChange={(e) => setOrdenDeVenta(e.target.value)}
-                placeholder={t("ordenDeVentaPlaceholder")}
-                className="border-border bg-muted text-foreground"
-              />
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Checkbox
-                id="deal-mesh"
-                checked={mesh}
-                onCheckedChange={(checked) => setMesh(checked === true)}
-              />
-              <Label htmlFor="deal-mesh" className="text-muted-foreground cursor-pointer">
-                {t("mesh")}
-              </Label>
-            </div>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("notes")}</Label>
+                <Textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder={t("notesPlaceholder")}
+                  className="min-h-[100px] border-border bg-muted text-foreground"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("direccionCompleta")}</Label>
+                <Textarea
+                  value={direccionCompleta}
+                  onChange={(e) => setDireccionCompleta(e.target.value)}
+                  placeholder={t("direccionCompletaPlaceholder")}
+                  className="min-h-[70px] border-border bg-muted text-foreground"
+                />
+              </div>
 
-            <div className="grid gap-2">
-              <Label className="text-muted-foreground">{t("formaDePago")}</Label>
-              <select
-                value={formaDePago}
-                onChange={(e) => {
-                  const next = e.target.value as FormaPago | "";
-                  setFormaDePago(next);
-                  // Al salir de Transferencia Bancaria, limpiamos los
-                  // campos bancarios para que no queden datos ocultos
-                  // desincronizados si el usuario ya los había llenado.
-                  if (next !== "Transferencia bancaria") {
-                    setEntidadBancariaId("");
-                    setNumeroCuenta("");
-                  }
-                }}
-                className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
-                <option value="" disabled>
-                  {t("selectFormaDePago")}
-                </option>
-                {FORMA_PAGO_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {!isAgent && (
-              <>
-                <div className="grid gap-2">
-                  <Label className="text-muted-foreground">{t("tipoDeVenta")}</Label>
-                  <select
-                    value={tipoDeVenta}
-                    onChange={(e) => setTipoDeVenta(e.target.value as TipoVenta | "")}
-                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-                  >
-                    <option value="" disabled>
-                      {t("selectTipoDeVenta")}
-                    </option>
-                    {TIPO_VENTA_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label className="text-muted-foreground">{t("operadora")}</Label>
-                  <select
-                    value={operadora}
-                    onChange={(e) => setOperadora(e.target.value as Operadora | "")}
-                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-                  >
-                    <option value="" disabled>
-                      {t("selectOperadora")}
-                    </option>
-                    {OPERADORA_OPTIONS.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </>
-            )}            
-
-            {formaDePago === "Transferencia bancaria" && (
-              <>
-                <div className="grid gap-2">
-                  <Label className="text-muted-foreground">
-                    {t("entidadBancaria")} <span className="text-red-400">*</span>
-                  </Label>
-                  <select
-                    value={entidadBancariaId}
-                    onChange={(e) => setEntidadBancariaId(e.target.value)}
-                    disabled={loadingEntidades}
-                    className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
-                  >
-                    <option value="" disabled>
-                      {t("selectEntidadBancaria")}
-                    </option>
-                    {entidadesBancarias.map((e) => (
-                      <option key={e.id} value={e.id}>
-                        {e.nombre}
-                      </option>
-                    ))}
-                  </select>
-                  {loadingEntidades && (
-                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      {t("loadingEntidades")}
-                    </p>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("googleMapsLink")}</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    value={googleMapsLink}
+                    onChange={(e) => setGoogleMapsLink(e.target.value)}
+                    placeholder={t("googleMapsLinkPlaceholder")}
+                    className="border-border bg-muted pl-7 pr-8 text-foreground"
+                  />
+                  {googleMapsLink && (
+                    <a
+                      href={googleMapsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      <ExternalLink className="h-3.5 w-3.5" />
+                    </a>
                   )}
                 </div>
-
-                <div className="grid gap-2">
-                  <Label className="text-muted-foreground">
-                    {t("numeroCuenta")} <span className="text-red-400">*</span>
-                  </Label>
-                  <Input
-                    value={numeroCuenta}
-                    onChange={(e) => setNumeroCuenta(e.target.value)}
-                    placeholder={t("numeroCuentaPlaceholder")}
-                    className="border-border bg-muted text-foreground"
-                  />
-                </div>
-              </>
-            )}
-            {deal && (
-              <div className="space-y-2 rounded-lg border border-border bg-muted/50 p-3">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  {t("status")}
-                </p>
-                {/* <div className="flex gap-2"> */}
-                {!isAgent && (
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      onClick={() => handleStatusChange("won")}
-                      disabled={!!statusAction || deal.status === "won"}
-                      className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {statusAction === "won" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <Check className="mr-1 h-4 w-4" />
-                          {t("markAsWon")}
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => handleStatusChange("lost")}
-                      disabled={!!statusAction || deal.status === "lost"}
-                      className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {statusAction === "lost" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <>
-                          <X className="mr-1 h-4 w-4" />
-                          {t("markAsLost")}
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-                {deal.status && deal.status !== "open" && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => handleStatusChange("open")}
-                    disabled={!!statusAction}
-                    className="w-full text-muted-foreground hover:text-foreground"
-                  >
-                    {t("reopenDeal")}
-                  </Button>
-                )}
               </div>
-            )}
-          </div>
 
-          <div className="border-t border-border/50 bg-popover/80 p-4">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="flex-1 border-border bg-transparent text-muted-foreground hover:bg-muted"
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                onClick={handleSave}
-                // disabled={saving || !title.trim() || !contactId || !stageId}
-                // disabled={saving || !productoId || !contactId || !stageId}
-                disabled={
-                  saving ||
-                  !productoId ||
-                  !contactId ||
-                  !stageId ||
-                  (formaDePago === "Transferencia bancaria" &&
-                    (!entidadBancariaId || !numeroCuenta.trim()))
-                }
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {saving ? t("saving") : deal ? t("saveChanges") : t("createDeal")}
-              </Button>
-            </div>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("icc")}</Label>
+                <Input
+                  value={icc}
+                  onChange={(e) => setIcc(e.target.value)}
+                  placeholder={t("iccPlaceholder")}
+                  className="border-border bg-muted text-foreground"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("ordenDeVenta")}</Label>
+                <Input
+                  value={ordenDeVenta}
+                  onChange={(e) => setOrdenDeVenta(e.target.value)}
+                  placeholder={t("ordenDeVentaPlaceholder")}
+                  className="border-border bg-muted text-foreground"
+                />
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Checkbox
+                  id="deal-mesh"
+                  checked={mesh}
+                  onCheckedChange={(checked) => setMesh(checked === true)}
+                />
+                <Label htmlFor="deal-mesh" className="text-muted-foreground cursor-pointer">
+                  {t("mesh")}
+                </Label>
+              </div>
 
-            {deal &&
-              (confirmDelete ? (
-                <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
-                  <span className="text-red-300">{t("deletePrompt")}</span>
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => setConfirmDelete(false)}
-                      disabled={deleting}
-                      className="rounded px-2 py-1 text-muted-foreground hover:bg-muted"
-                    >
-                      {t("cancel")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="rounded bg-red-600 px-2 py-1 font-medium text-white hover:bg-red-700 disabled:opacity-50"
-                    >
-                      {deleting ? t("deleting") : t("confirm")}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setConfirmDelete(true)}
-                  className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-red-400 hover:text-red-300"
+              <div className="grid gap-2">
+                <Label className="text-muted-foreground">{t("formaDePago")}</Label>
+                <select
+                  value={formaDePago}
+                  onChange={(e) => {
+                    const next = e.target.value as FormaPago | "";
+                    setFormaDePago(next);
+                    // Al salir de Transferencia Bancaria, limpiamos los
+                    // campos bancarios para que no queden datos ocultos
+                    // desincronizados si el usuario ya los había llenado.
+                    if (next !== "Transferencia bancaria") {
+                      setEntidadBancariaId("");
+                      setNumeroCuenta("");
+                    }
+                  }}
+                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
                 >
-                  <Trash2 className="h-3 w-3" />
-                  {t("deleteDeal")}
-                </button>
-              ))}
+                  <option value="" disabled>
+                    {t("selectFormaDePago")}
+                  </option>
+                  {FORMA_PAGO_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {!isAgent && (
+                <>
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">{t("tipoDeVenta")}</Label>
+                    <select
+                      value={tipoDeVenta}
+                      onChange={(e) => setTipoDeVenta(e.target.value as TipoVenta | "")}
+                      className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                    >
+                      <option value="" disabled>
+                        {t("selectTipoDeVenta")}
+                      </option>
+                      {TIPO_VENTA_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">{t("operadora")}</Label>
+                    <select
+                      value={operadora}
+                      onChange={(e) => setOperadora(e.target.value as Operadora | "")}
+                      className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                    >
+                      <option value="" disabled>
+                        {t("selectOperadora")}
+                      </option>
+                      {OPERADORA_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}            
+
+              {formaDePago === "Transferencia bancaria" && (
+                <>
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">
+                      {t("entidadBancaria")} <span className="text-red-400">*</span>
+                    </Label>
+                    <select
+                      value={entidadBancariaId}
+                      onChange={(e) => setEntidadBancariaId(e.target.value)}
+                      disabled={loadingEntidades}
+                      className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
+                    >
+                      <option value="" disabled>
+                        {t("selectEntidadBancaria")}
+                      </option>
+                      {entidadesBancarias.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {e.nombre}
+                        </option>
+                      ))}
+                    </select>
+                    {loadingEntidades && (
+                      <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        {t("loadingEntidades")}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="grid gap-2">
+                    <Label className="text-muted-foreground">
+                      {t("numeroCuenta")} <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      value={numeroCuenta}
+                      onChange={(e) => setNumeroCuenta(e.target.value)}
+                      placeholder={t("numeroCuentaPlaceholder")}
+                      className="border-border bg-muted text-foreground"
+                    />
+                  </div>
+                </>
+              )}
+              {deal && (
+                <div className="space-y-2 rounded-lg border border-border bg-muted/50 p-3">
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                    {t("status")}
+                  </p>
+                  {/* <div className="flex gap-2"> */}
+                  {!isAgent && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => handleStatusChange("won")}
+                        disabled={!!statusAction || deal.status === "won"}
+                        className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                      >
+                        {statusAction === "won" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Check className="mr-1 h-4 w-4" />
+                            {t("markAsWon")}
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => handleStatusChange("lost")}
+                        disabled={!!statusAction || deal.status === "lost"}
+                        className="flex-1 bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {statusAction === "lost" ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            <X className="mr-1 h-4 w-4" />
+                            {t("markAsLost")}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                  {deal.status && deal.status !== "open" && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => handleStatusChange("open")}
+                      disabled={!!statusAction}
+                      className="w-full text-muted-foreground hover:text-foreground"
+                    >
+                      {t("reopenDeal")}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </fieldset>
           </div>
+
+            <div className="border-t border-border/50 bg-popover/80 p-4">
+              {!(isAgent && isLocked) && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    className="flex-1 border-border bg-transparent text-muted-foreground hover:bg-muted"
+                  >
+                    {t("cancel")}
+                  </Button>
+                  <Button
+                    onClick={handleSave}
+                    // disabled={saving || !title.trim() || !contactId || !stageId}
+                    // disabled={saving || !productoId || !contactId || !stageId}
+                    disabled={
+                      saving ||
+                      !productoId ||
+                      !contactId ||
+                      !stageId ||
+                      (formaDePago === "Transferencia bancaria" &&
+                        (!entidadBancariaId || !numeroCuenta.trim()))
+                    }
+                    className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {saving ? t("saving") : deal ? t("saveChanges") : t("createDeal")}
+                  </Button>
+                </div>
+              )}
+
+              {deal &&
+              !(isAgent && isLocked) &&
+                (confirmDelete ? (
+                  <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
+                    <span className="text-red-300">{t("deletePrompt")}</span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDelete(false)}
+                        disabled={deleting}
+                        className="rounded px-2 py-1 text-muted-foreground hover:bg-muted"
+                      >
+                        {t("cancel")}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className="rounded bg-red-600 px-2 py-1 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                      >
+                        {deleting ? t("deleting") : t("confirm")}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(true)}
+                    className="mt-3 flex w-full items-center justify-center gap-1 text-xs text-red-400 hover:text-red-300"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    {t("deleteDeal")}
+                  </button>
+                ))}
+            </div>
+          
         </div>
       </SheetContent>
     </Sheet>

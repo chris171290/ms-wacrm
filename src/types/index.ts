@@ -423,6 +423,8 @@ export interface Deal {
   orden_de_venta?: string | null;
   tipo_de_venta?: TipoVenta | null;
   operadora?: Operadora | null;
+  esta_integrado?: boolean;
+  twenty_opportunity_id?: string | null;
 }
 
 export type TipoVenta = 'Línea Nueva' | 'Portabilidad Prepago' | 'Migración';

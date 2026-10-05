@@ -83,6 +83,24 @@ export interface CreatePersonInput {
   googleMapsLink?: string | null;
 }
 
+// Busca un Person existente en Twenty por cédula (ci). Si ya existe,
+// evita crear un cliente duplicado cada vez que se marca una venta
+// como ganada para la misma persona.
+export async function findTwentyPersonByCi(ci: string): Promise<{ id: string } | null> {
+  const filter = `ci[eq]:"${ci}"`;
+  const url = `${TWENTY_BASE_URL}/rest/people?filter=${encodeURIComponent(filter)}`;
+
+  const res = await fetch(url, { method: "GET", headers: authHeaders() });
+  if (!res.ok) {
+    throw new Error(`Twenty: error al buscar persona (${res.status}): ${await res.text().catch(() => "")}`);
+  }
+
+  const json = await res.json();
+  const person = json?.data?.people?.[0];
+  return person?.id ? { id: person.id } : null;
+}
+
+
 export async function createTwentyPerson(input: CreatePersonInput) {
   const { firstName, lastName } = splitName(input.name);
   const phone = parsePhone(input.phone);
@@ -113,6 +131,14 @@ export async function createTwentyPerson(input: CreatePersonInput) {
   const person = json?.data?.createPerson ?? json;
   if (!person?.id) throw new Error("Twenty: persona creada sin id en la respuesta");
   return person as { id: string };
+}
+
+
+// Punto de entrada que usa mark-won: busca primero, crea solo si no existe.
+export async function findOrCreateTwentyPerson(input: CreatePersonInput): Promise<{ id: string }> {
+  const existing = await findTwentyPersonByCi(input.identificacion);
+  if (existing) return existing;
+  return createTwentyPerson(input);
 }
 
 export interface CreateOpportunityInput {
@@ -168,6 +194,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     fechaAltaEInstalacion: todayInEcuador(),
     tipoDeVenta: mapTipoVenta(input.tipoDeVenta),
     operadora: mapOperadora(input.operadora),
+    equipo: "CALL_CENTER_NORTE",
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };
 

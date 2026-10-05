@@ -548,7 +548,16 @@
       "toastFailedMoveDeal": "Error al mover el negocio",
       "toastFailedCreatePipeline": "Error al crear el embudo",
       "toastPipelineCreated": "Embudo creado",
-      "toastNotLinkedToAccount": "Tu perfil no está vinculado a una cuenta."
+      "toastNotLinkedToAccount": "Tu perfil no está vinculado a una cuenta.",
+      "searchPlaceholder": "Buscar por nombre, teléfono o cédula...",
+      "filterAllStatus": "Todos los estados",
+      "filterOpen": "Abierto",
+      "filterWon": "Ganado",
+      "filterLost": "Perdido",
+      "filterAllAgents": "Todos los agentes",
+      "dateFromLabel": "Desde",
+      "dateToLabel": "Hasta",
+      "clearFilters": "Limpiar filtros"    
     },
     "board": {
       "dropDealHere": "Suelta un negocio aquí",
@@ -627,7 +636,13 @@
       "tipoDeVenta": "Tipo de Venta",
       "selectTipoDeVenta": "Selecciona un tipo de venta",
       "operadora": "Operadora",
-      "selectOperadora": "Selecciona una operadora"
+      "selectOperadora": "Selecciona una operadora",
+      "lockedBanner": "Este negocio ya está integrado con Majois CRM y no se puede editar.",
+      "unlockDeal": "Desbloquear",
+      "unlocking": "Desbloqueando...",
+      "toastFailedUnlock": "No se pudo desbloquear el negocio",
+      "toastUnlocked": "Negocio desbloqueado",
+      "viewInTwenty": "Ver venta en Majois CRM"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",
