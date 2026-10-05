@@ -28,7 +28,7 @@ function initials(name?: string, fallback?: string) {
 
 export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
   const t = useTranslations("Pipelines.card");
-  const contactLabel = deal.contact?.name || deal.contact?.phone || t("noContact");
+  const contactLabel = deal.title || deal.contact?.name || deal.contact?.phone || t("noContact");
   const assigneeLabel = deal.assignee?.full_name || null;
 
   return (
@@ -56,7 +56,7 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
 
       <div className="flex items-start justify-between gap-2">
         <h4 className="flex-1 text-sm font-semibold leading-snug text-foreground break-words">
-          {deal.title}
+          {deal.contact?.name}
         </h4>
         {deal.status === "won" && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
@@ -74,10 +74,12 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
 
       {/* Contact row */}
       <div className="mt-2 flex items-center gap-2">
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-foreground">
+        {/* <span className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-[10px] font-semibold text-foreground">
           {initials(deal.contact?.name, deal.contact?.phone)}
+        </span> */}
+        <span className=" text-xs text-muted-foreground">
+          {contactLabel}
         </span>
-        <span className="truncate text-xs text-muted-foreground">{contactLabel}</span>
       </div>
 
       <div className="mt-2 flex items-center justify-between">
@@ -91,17 +93,29 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
           </span>
         )}
       </div>
-
       {assigneeLabel && (
+        <div className="mt-2 flex items-center justify-end gap-2 w-full">
+          <span
+            title={assigneeLabel}
+            className="whitespace-nowrap text-xs text-muted-foreground"
+          >
+            {assigneeLabel}
+          </span>
+        </div>
+      )}
+
+
+      {/* {assigneeLabel && (
         <div className="mt-2 flex items-center justify-end">
           <span
             title={assigneeLabel}
             className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary"
           >
             {initials(assigneeLabel)}
+            {assigneeLabel}
           </span>
         </div>
-      )}
+      )} */}
     </button>
   );
 }

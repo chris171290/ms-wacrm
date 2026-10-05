@@ -63,7 +63,7 @@ export function DealForm({
 }: DealFormProps) {
   const t = useTranslations("Pipelines.form");
   const supabase = createClient();
-  const { accountId, defaultCurrency, accountRole } = useAuth(); 
+  const { accountId, defaultCurrency, accountRole, profile } = useAuth(); 
   const isAgent = accountRole === "agent";
   const isLocked = !!deal?.esta_integrado;
   const canUnlock = accountRole === "admin" || accountRole === "owner";
@@ -167,7 +167,7 @@ export function DealForm({
       setCurrency(defaultCurrency);
       setContactId("");
       setStageId(defaultStageId || stages[0]?.id || "");
-      setAssignedTo("");
+      setAssignedTo(profile?.id ?? "");
       setExpectedCloseDate("");
       setNotes("");
       setProductoId("");
