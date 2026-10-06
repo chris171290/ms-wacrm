@@ -485,15 +485,44 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       if (!args.contactId) throw new Error('assign_conversation needs a contact')
       let agentId = cfg.agent_id
       if (cfg.mode === 'round_robin') {
-        // Pick any member of the account. The existing implementation
-        // only ever returned the automation's author; preserving that
-        // shape until a real round-robin algorithm replaces it.
-        const { data: profiles } = await db
+        // // Pick any member of the account. The existing implementation
+        // // only ever returned the automation's author; preserving that
+        // // shape until a real round-robin algorithm replaces it.
+        // const { data: profiles } = await db
+        //   .from('profiles')
+        //   .select('user_id')
+        //   .eq('account_id', args.automation.account_id)
+        //   .limit(1)
+        // agentId = profiles?.[0]?.user_id
+        
+        // Rota entre los agentes (rol 'agent') de la cuenta. El orden
+        // es estable (por user_id) para que el índice calculado tenga
+        // sentido de una ejecución a otra.
+        const { data: agents } = await db
           .from('profiles')
           .select('user_id')
           .eq('account_id', args.automation.account_id)
-          .limit(1)
-        agentId = profiles?.[0]?.user_id
+          .eq('account_role', 'agent')
+          .order('user_id', { ascending: true })
+
+        if (agents && agents.length > 0) {
+          const { data: state } = await db
+            .from('automation_round_robin_state')
+            .select('last_assigned_user_id')
+            .eq('step_id', step.id)
+            .maybeSingle()
+
+          const lastIndex = state?.last_assigned_user_id
+            ? agents.findIndex((a) => a.user_id === state.last_assigned_user_id)
+            : -1
+          const nextIndex = (lastIndex + 1) % agents.length
+          agentId = agents[nextIndex].user_id
+
+          await db.from('automation_round_robin_state').upsert(
+            { step_id: step.id, last_assigned_user_id: agentId, updated_at: new Date().toISOString() },
+            { onConflict: 'step_id' },
+          )
+        }
       }
       if (!agentId) return 'no agent resolved'
       await db
