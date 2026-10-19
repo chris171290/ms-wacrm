@@ -65,6 +65,9 @@ export const CHAT_MEDIA_BUCKET = "chat-media";
 /** Meta caps media captions at 1024 chars. Enforced here and in the send route. */
 export const MEDIA_CAPTION_MAX = 1024;
 
+/** Oculta el botón ✨ de redactar con IA y su texto de ayuda. */
+const SHOW_AI_DRAFT = false;
+
 /** Hard cap on a single voice recording so it can't blow the upload/
  *  transcode limits — auto-stops the recorder when reached. */
 const MAX_RECORDING_SECONDS = 5 * 60;
@@ -709,22 +712,24 @@ export function MessageComposer({
             <LayoutTemplate className="h-4 w-4" />
           </GatedButton>
 
-          <GatedButton
-            variant="ghost"
-            size="sm"
-            canAct={!readOnly}
-            gateReason="send messages"
-            disabled={drafting}
-            title={readOnly ? undefined : t("draftWithAI")}
-            className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-primary"
-            onClick={handleDraft}
-          >
-            {drafting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Sparkles className="h-4 w-4" />
-            )}
-          </GatedButton>
+          {SHOW_AI_DRAFT && (
+            <GatedButton
+              variant="ghost"
+              size="sm"
+              canAct={!readOnly}
+              gateReason="send messages"
+              disabled={drafting}
+              title={readOnly ? undefined : t("draftWithAI")}
+              className="h-9 w-9 shrink-0 p-0 text-muted-foreground hover:text-primary"
+              onClick={handleDraft}
+            >
+              {drafting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+            </GatedButton>
+          )}
 
           <textarea
             ref={textareaRef}
@@ -766,7 +771,7 @@ export function MessageComposer({
       {/* Hint sits outside the flex row so its height doesn't push
           `items-end` buttons below the textarea. Indented to line up
           under the textarea left edge. */}
-      {!draft && !recording && (
+      {SHOW_AI_DRAFT && !draft && !recording && (
         <p className="mt-1 pl-[5.5rem] text-[10px] text-muted-foreground">
           {t("draftHint")}
         </p>

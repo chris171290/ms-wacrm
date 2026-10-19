@@ -70,6 +70,22 @@ interface WhatsAppMessage {
   button?: { text?: string; payload?: string }
   /** Present when the customer swipe-replies to one of our messages. */
   context?: { id: string }
+  /**
+   * Presente cuando el mensaje llegó por el botón "Enviar mensaje" de
+   * un anuncio de Facebook/Instagram. Solo viene en el mensaje que
+   * abrió la conversación desde ese clic — los mensajes siguientes
+   * del mismo hilo no lo repiten.
+   */
+  referral?: {
+    source_url?: string
+    source_id?: string
+    source_type?: string
+    headline?: string
+    body?: string
+    media_url?: string
+    video_url?: string
+    image_url?: string
+  }
 }
 
 interface WhatsAppWebhookEntry {
@@ -596,7 +612,8 @@ async function processMessage(
     accountId,
     configOwnerUserId,
     senderPhone,
-    contactName
+    contactName,
+    message.referral ?? null
   )
   if (!contactOutcome) return
   const contactRecord = contactOutcome.contact
@@ -1116,7 +1133,8 @@ async function findOrCreateContact(
   accountId: string,
   configOwnerUserId: string,
   phone: string,
-  name: string
+  name: string,
+  referral: WhatsAppMessage['referral'] | null
 ): Promise<ContactOutcome | null> {
   // Find an existing contact for this account by phone. The shared
   // helper pre-filters in SQL by the last-8-digit suffix (so we don't
@@ -1132,12 +1150,23 @@ async function findOrCreateContact(
 
   if (existingContact) {
     // Update name if it changed
+    const updates: Record<string, unknown> = {}
     if (name && name !== existingContact.name) {
-      await supabaseAdmin()
-        .from('contacts')
-        .update({ name, updated_at: new Date().toISOString() })
-        .eq('id', existingContact.id)
+      updates.name = name
     }
+    // Atribución de primer toque: solo rellenamos el anuncio si este
+    // contacto todavía no tenía uno guardado. Un mensaje posterior
+    // (que de todas formas casi nunca trae `referral`) nunca pisa el
+    // anuncio original que lo trajo.
+    if (referral?.source_id && !existingContact.ad_id) {
+      updates.ad_id = referral.source_id
+      updates.ad_referral = referral
+    }
+    if (Object.keys(updates).length > 0) {
+      updates.updated_at = new Date().toISOString()
+      await supabaseAdmin().from('contacts').update(updates).eq('id', existingContact.id)
+    }
+
     return { contact: existingContact, wasCreated: false }
   }
 
@@ -1152,7 +1181,9 @@ async function findOrCreateContact(
       user_id: configOwnerUserId,
       phone,
       name: name || phone,
-      origen: "meta"
+      origen: referral?.source_id ? 'ad' : 'meta',
+      ad_id: referral?.source_id ?? null,
+      ad_referral: referral ?? null,
     })
     .select()
     .single()

@@ -125,6 +125,17 @@ export interface Contact {
   campana_id?: string | null;
   campana_nombre?: string | null;
   origen?: string | null;
+  ad_id?: string | null;
+  ad_referral?: {
+    source_url?: string;
+    source_id?: string;
+    source_type?: string;
+    headline?: string;
+    body?: string;
+    media_url?: string;
+    video_url?: string;
+    image_url?: string;
+  } | null;
 }
 
 export interface Tag {

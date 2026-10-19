@@ -43,11 +43,11 @@ interface MessageBubbleProps {
 function StatusIcon({ status }: { status: Message["status"] }) {
   switch (status) {
     case "sending":
-      return <Clock className="h-3 w-3 text-muted-foreground" />;
+      return <Clock className="h-3 w-3" />;
     case "sent":
-      return <Check className="h-3 w-3 text-muted-foreground" />;
+      return <Check className="h-3 w-3" />;
     case "delivered":
-      return <CheckCheck className="h-3 w-3 text-muted-foreground" />;
+      return <CheckCheck className="h-3 w-3" />;
     case "read":
       return <CheckCheck className="h-3 w-3 text-blue-400" />;
     case "failed":
@@ -289,7 +289,11 @@ export function MessageBubble({
           >
             {time}
           </span>
-          {isAgent && <StatusIcon status={message.status} />}
+          {isAgent && (
+            <span className="inline-flex text-primary-foreground/70">
+              <StatusIcon status={message.status} />
+            </span>
+          )}
         </div>
       </div>
       {reactions && reactions.length > 0 && onToggleReaction && (
