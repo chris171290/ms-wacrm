@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+const PRODUCTOS_FILTER = 'tipoDeProducto[eq]:"PLAN_CELULAR"';
+
 interface UpstreamProducto {
   id: string;
   name: string;
@@ -24,7 +26,10 @@ export async function GET() {
   }
 
   try {
-    const res = await fetch(url, {
+    const upstreamUrl = new URL(url);
+    upstreamUrl.searchParams.set('filter', PRODUCTOS_FILTER);
+
+    const res = await fetch(upstreamUrl.toString(), {
       headers: {
         Authorization: `Bearer ${token}`,
       },
