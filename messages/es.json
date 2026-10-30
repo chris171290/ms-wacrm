@@ -89,7 +89,7 @@
       "newAutomation": "Nueva automatización"
     },
     "activityFeed": {
-      "title": "Actividad reciente",
+      "title": "Actividades reciente",
       "viewAll": "Ver todo →",
       "noActivity": "Aún no hay actividad",
       "noActivityHint": "Aquí aparecerá la actividad de mensajes, negocios, difusiones y automatizaciones.",
