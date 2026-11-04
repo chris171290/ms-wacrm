@@ -156,6 +156,7 @@ export interface CreateOpportunityInput {
   ownerId?: string | null;
   tipoDeVenta?: string | null;
   operadora?: string | null;
+  fechaAlta?: string | null;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -191,7 +192,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
     ordenDeVenta: input.ordenDeVenta ?? null,
     ownerId: input.ownerId ?? null,
-    fechaAltaEInstalacion: todayInEcuador(),
+    fechaAltaEInstalacion: input.fechaAlta ?? null,
     tipoDeVenta: mapTipoVenta(input.tipoDeVenta),
     operadora: mapOperadora(input.operadora),
     equipo: "CALL_CENTER_NORTE",

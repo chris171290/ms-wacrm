@@ -378,6 +378,7 @@ export function DealForm({
       if (!googleMapsLink) missing.push(t("googleMapsLink"));
       if (!formaDePago) missing.push(t("formaDePago"));
       if (!ordenDeVenta) missing.push(t("ordenDeVenta"));
+      if (!fechaAlta) missing.push(t("fechaAlta"));
       if (!tipoDeVenta) missing.push(t("tipoDeVenta"));
       if (!operadora) missing.push(t("operadora"));      
 

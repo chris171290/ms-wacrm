@@ -36,6 +36,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal.google_maps_link) missing.push("google_maps_link");
     if (!deal.forma_de_pago) missing.push("forma_de_pago");
     if (!deal.orden_de_venta) missing.push("orden_de_venta");
+    if (!deal.fecha_alta) missing.push("fecha_alta");
     if (!deal.tipo_de_venta) missing.push("tipo_de_venta");
     if (!deal.operadora) missing.push("operadora");
     if (!deal.contact?.identificacion) missing.push("contacto.identificacion");
