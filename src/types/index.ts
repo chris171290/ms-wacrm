@@ -432,6 +432,9 @@ export interface Deal {
   direccion_completa?: string | null;
   google_maps_link?: string | null;
   orden_de_venta?: string | null;
+  fecha_alta?: string | null;
+  celular_asignado?: string | null;
+  nip?: string | null;
   tipo_de_venta?: TipoVenta | null;
   operadora?: Operadora | null;
   esta_integrado?: boolean;

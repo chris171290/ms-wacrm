@@ -84,6 +84,9 @@ export function DealForm({
   const [direccionCompleta, setDireccionCompleta] = useState("");
   const [googleMapsLink, setGoogleMapsLink] = useState("");
   const [ordenDeVenta, setOrdenDeVenta] = useState("");
+  const [fechaAlta, setFechaAlta] = useState("");
+  const [celularAsignado, setCelularAsignado] = useState("");
+  const [nip, setNip] = useState("");
   const [formaDePago, setFormaDePago] = useState<FormaPago | "">("");
   const [tipoDeVenta, setTipoDeVenta] = useState<TipoVenta | "">("");
   const [operadora, setOperadora] = useState<Operadora | "">("");
@@ -156,6 +159,9 @@ export function DealForm({
       setDireccionCompleta(deal.direccion_completa ?? "");
       setGoogleMapsLink(deal.google_maps_link ?? "");
       setOrdenDeVenta(deal.orden_de_venta ?? "");
+      setFechaAlta(deal.fecha_alta ?? "");
+      setCelularAsignado(deal.celular_asignado ?? "");
+      setNip(deal.nip ?? "");      
       setFormaDePago(deal.forma_de_pago ?? "");
       setTipoDeVenta(deal.tipo_de_venta ?? "");
       setOperadora(deal.operadora ?? "");
@@ -176,6 +182,9 @@ export function DealForm({
       setDireccionCompleta("");
       setGoogleMapsLink("");
       setOrdenDeVenta("");
+      setFechaAlta("");
+      setCelularAsignado("");
+      setNip("");
       setFormaDePago("");
       setTipoDeVenta("");
       setOperadora("");
@@ -303,6 +312,9 @@ export function DealForm({
       direccion_completa: direccionCompleta.trim() || null,
       google_maps_link: googleMapsLink.trim() || null,
       orden_de_venta: ordenDeVenta.trim() || null,
+      fecha_alta: fechaAlta || null,
+      celular_asignado: celularAsignado.trim() || null,
+      nip: nip.trim() || null,      
       forma_de_pago: formaDePago || null,
       tipo_de_venta: tipoDeVenta || null,
       operadora: operadora || null,
@@ -401,6 +413,9 @@ export function DealForm({
           direccion_completa: direccionCompleta.trim() || null,
           google_maps_link: googleMapsLink.trim() || null,
           orden_de_venta: ordenDeVenta.trim() || null,
+          fecha_alta: fechaAlta || null,
+          celular_asignado: celularAsignado.trim() || null,
+          nip: nip.trim() || null,          
           forma_de_pago: formaDePago || null,
           tipo_de_venta: tipoDeVenta || null,
           operadora: operadora || null,
@@ -767,6 +782,36 @@ export function DealForm({
                   className="border-border bg-muted text-foreground"
                 />
               </div>
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("fechaAlta")}</Label>
+              <Input
+                type="date"
+                value={fechaAlta}
+                onChange={(e) => setFechaAlta(e.target.value)}
+                className="border-border bg-muted text-foreground scheme-light"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("celularAsignado")}</Label>
+              <Input
+                value={celularAsignado}
+                onChange={(e) => setCelularAsignado(e.target.value)}
+                placeholder={t("celularAsignadoPlaceholder")}
+                className="border-border bg-muted text-foreground"
+              />
+            </div>
+
+            <div className="grid gap-2">
+              <Label className="text-muted-foreground">{t("nip")}</Label>
+              <Input
+                value={nip}
+                onChange={(e) => setNip(e.target.value)}
+                placeholder={t("nipPlaceholder")}
+                className="border-border bg-muted text-foreground"
+              />
+            </div>              
+
               <div className="flex items-center gap-2.5">
                 <Checkbox
                   id="deal-mesh"
