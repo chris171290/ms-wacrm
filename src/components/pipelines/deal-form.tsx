@@ -37,6 +37,7 @@ import {
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useProductos } from "@/hooks/use-productos"; 
+import { ProductoCombobox } from "@/components/pipelines/producto-combobox";
 import { useEntidadesBancarias } from "@/hooks/use-entidades-bancarias";
 import { FORMA_PAGO_OPTIONS, TIPO_VENTA_OPTIONS, OPERADORA_OPTIONS } from "@/lib/deals/constants";
 import type { FormaPago, TipoVenta, Operadora } from "@/types";
@@ -65,6 +66,8 @@ export function DealForm({
   const supabase = createClient();
   const { accountId, defaultCurrency, accountRole, profile } = useAuth(); 
   const isAgent = accountRole === "agent";
+  // const lockStageForAgent = isAgent && !deal;
+  const lockStageForAgent = isAgent
   const isLocked = !!deal?.esta_integrado;
   const canUnlock = accountRole === "admin" || accountRole === "owner";
   const [unlocking, setUnlocking] = useState(false);
@@ -116,7 +119,7 @@ export function DealForm({
   }
 
   function contactLabel(c: Contact) {
-    return c.name || c.phone || "";
+    return c.nombre_completo?.trim() || c.name || c.phone || "";
   }
 
   async function handleUnlock() {
@@ -172,7 +175,9 @@ export function DealForm({
       setValue("");
       setCurrency(defaultCurrency);
       setContactId("");
-      setStageId(defaultStageId || stages[0]?.id || "");
+      setStageId(
+        isAgent ? (stages[0]?.id ?? "") : (defaultStageId || stages[0]?.id || ""),
+      );
       setAssignedTo(profile?.id ?? "");
       setExpectedCloseDate("");
       setNotes("");
@@ -191,7 +196,7 @@ export function DealForm({
       setEntidadBancariaId("");
       setNumeroCuenta("");
     }
-  }, [open, deal, defaultStageId, stages, defaultCurrency]);
+    }, [open, deal, defaultStageId, stages, defaultCurrency, isAgent]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Load supporting data once the sheet is open
@@ -231,7 +236,7 @@ export function DealForm({
     if (!q) return contacts;
     return contacts.filter((c) => {
       const haystack = normalize(
-        [c.name, c.phone, (c as any).email, (c as any).cedula]
+        [c.name, c.nombre_completo, c.identificacion, c.email, c.phone]
           .filter(Boolean)
           .join(" "),
       );
@@ -279,6 +284,25 @@ export function DealForm({
     if (!productoId || !contactId || !stageId) {
       toast.error(t("toastRequired"));
       return;
+    }
+
+    if (!tipoDeVenta || !operadora) {
+      toast.error(t("toastSaleFieldsRequired"));
+      return;
+    }
+
+    // Al crear un deal, el contacto debe tener sus datos completos.
+    if (!deal) {
+      const missingContact: string[] = [];
+      if (!selectedContact?.name?.trim()) missingContact.push(t("contactName"));
+      if (!selectedContact?.nombre_completo?.trim()) missingContact.push(t("nombreCompleto"));
+      if (!selectedContact?.identificacion?.trim()) missingContact.push(t("identificacion"));
+      if (!selectedContact?.email?.trim()) missingContact.push(t("contactEmail"));
+
+      if (missingContact.length > 0) {
+        toast.error(`${t("toastContactIncomplete")}: ${missingContact.join(", ")}`);
+        return;
+      }
     }
 
 
@@ -545,30 +569,24 @@ export function DealForm({
             )}
             <fieldset disabled={isLocked} className="contents">
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("product")}</Label>
-                <select
+                <Label className="text-muted-foreground">{t("product")}
+                  <span className="text-red-400">*</span>
+                </Label>
+                <ProductoCombobox
+                  productos={productos}
                   value={productoId}
-                  onChange={(e) => setProductoId(e.target.value)}
-                  disabled={loadingProductos}
-                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:opacity-60"
-                >
-                  <option value="">{t("noProduct")}</option>
-                  {productos.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                {loadingProductos && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    {t("loadingProducts")}
-                  </p>
-                )}
+                  onChange={setProductoId}
+                  loading={loadingProductos}
+                  placeholder={t("selectProduct")}
+                  emptyText={t("noProductsFound")}
+                  loadingText={t("loadingProducts")}
+                />
               </div>
 
               <div className="grid gap-2 relative" ref={contactWrapperRef}>
-                <Label className="text-muted-foreground">{t("contact")}</Label>
+                <Label className="text-muted-foreground">{t("contact")}
+                  <span className="text-red-400">*</span>
+                </Label>
                 <div className="relative">
                   <Search className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
@@ -622,7 +640,12 @@ export function DealForm({
                         >
                           <span className="text-foreground">{contactLabel(c)}</span>
                           <span className="text-xs text-muted-foreground">
-                            {[c.phone, (c as any).email, (c as any).cedula]
+                          {[
+                            c.name && c.name !== contactLabel(c) ? c.name : null,
+                            c.identificacion,
+                            c.phone,
+                            c.email,
+                          ]
                               .filter(Boolean)
                               .join(" · ")}
                           </span>
@@ -645,7 +668,9 @@ export function DealForm({
 
               <div className="grid grid-cols-[1fr_110px] gap-3">
                 <div className="grid gap-2">
-                  <Label className="text-muted-foreground">{t("value")}</Label>
+                  <Label className="text-muted-foreground">{t("value")}
+                    <span className="text-red-400">*</span>
+                  </Label>
                   <div className="relative">
                     <DollarSign className="absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                     <Input
@@ -660,7 +685,9 @@ export function DealForm({
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label className="text-muted-foreground">{t("currency")}</Label>
+                  <Label className="text-muted-foreground">{t("currency")}
+                    <span className="text-red-400">*</span>
+                  </Label>
                   <select
                     value={currency}
                     onChange={(e) => setCurrency(e.target.value)}
@@ -692,11 +719,14 @@ export function DealForm({
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("stage")}</Label>
+                <Label className="text-muted-foreground">{t("stage")}
+                  <span className="text-red-400">*</span>
+                </Label>
                 <select
                   value={stageId}
                   onChange={(e) => setStageId(e.target.value)}
-                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
+                  disabled={lockStageForAgent}
+                  className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {stages.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -707,7 +737,9 @@ export function DealForm({
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("assignedTo")}</Label>
+                <Label className="text-muted-foreground">{t("assignedTo")}
+                  <span className="text-red-400">*</span>
+                </Label>
                 <select
                   value={assignedTo}
                   onChange={(e) => setAssignedTo(e.target.value)}
@@ -733,7 +765,9 @@ export function DealForm({
               </div>
               
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("direccionCompleta")}</Label>
+                <Label className="text-muted-foreground">{t("direccionCompleta")}
+                  <span className="text-red-400">*</span>
+                </Label>
                 <Textarea
                   value={direccionCompleta}
                   onChange={(e) => setDireccionCompleta(e.target.value)}
@@ -825,7 +859,9 @@ export function DealForm({
               </div>
 
               <div className="grid gap-2">
-                <Label className="text-muted-foreground">{t("formaDePago")}</Label>
+                <Label className="text-muted-foreground">{t("formaDePago")}
+                  <span className="text-red-400">*</span>
+                </Label>
                 <select
                   value={formaDePago}
                   onChange={(e) => {
@@ -852,10 +888,12 @@ export function DealForm({
                 </select>
               </div>
 
-              {!isAgent && (
-                <>
+              {/* {!isAgent && (
+                <> */}
                   <div className="grid gap-2">
-                    <Label className="text-muted-foreground">{t("tipoDeVenta")}</Label>
+                    <Label className="text-muted-foreground">
+                      {t("tipoDeVenta")} <span className="text-red-400">*</span>
+                    </Label>
                     <select
                       value={tipoDeVenta}
                       onChange={(e) => setTipoDeVenta(e.target.value as TipoVenta | "")}
@@ -873,7 +911,9 @@ export function DealForm({
                   </div>
 
                   <div className="grid gap-2">
-                    <Label className="text-muted-foreground">{t("operadora")}</Label>
+                    <Label className="text-muted-foreground">
+                      {t("operadora")} <span className="text-red-400">*</span>
+                    </Label>
                     <select
                       value={operadora}
                       onChange={(e) => setOperadora(e.target.value as Operadora | "")}
@@ -889,8 +929,8 @@ export function DealForm({
                       ))}
                     </select>
                   </div>
-                </>
-              )}            
+                {/* </>
+              )}             */}
 
               {formaDePago === "Transferencia bancaria" && (
                 <>
@@ -1009,6 +1049,8 @@ export function DealForm({
                       !productoId ||
                       !contactId ||
                       !stageId ||
+                      !tipoDeVenta ||
+                      !operadora ||
                       (formaDePago === "Transferencia bancaria" &&
                         (!entidadBancariaId || !numeroCuenta.trim()))
                     }

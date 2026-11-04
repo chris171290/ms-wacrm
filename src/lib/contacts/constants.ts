@@ -5,3 +5,5 @@ export const CONTACT_STATUS_OPTIONS: ContactStatus[] = [
   'Aprobado', 
   'Negado'
 ];
+
+export const SHOW_LEGACY_CONTACT_FIELDS = false;

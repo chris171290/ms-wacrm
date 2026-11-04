@@ -288,7 +288,20 @@
       "deals": "Negocios",
       "noTags": "Sin etiquetas",
       "noDeals": "Sin negocios",
-      "addNotePlaceholder": "Agregar una nota..."
+      "addNotePlaceholder": "Agregar una nota...",
+      "quickEditTitle": "Datos del cliente",
+      "identificacion": "Cédula / RUC",
+      "identificacionPlaceholder": "10 o 13 dígitos",
+      "nombreCompleto": "Nombre completo (según cédula)",
+      "nombreCompletoPlaceholder": "Como aparece en la cédula",
+      "email": "Correo electrónico",
+      "save": "Guardar",
+      "toastSaved": "Datos del cliente actualizados",
+      "toastSaveFailed": "No se pudieron guardar los datos",
+      "identificacionInvalid": "La cédula o RUC no es válido",
+      "identificacionDuplicate": "Esa cédula ya está registrada en otro contacto",
+      "emailInvalid": "El correo no es válido",
+      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente"      
     },
     "aiBanner": {
       "pausedTitle": "El asistente de IA está pausado aquí",
@@ -388,10 +401,15 @@
       "identificacionHint": "Ingresa una cédula (10 dígitos) o RUC (13 dígitos) válido",
       "identificacionRequired": "La identificación es obligatoria",
       "identificacionInvalid": "La identificación no es válida",
+      "nombreCompletoLabel": "Nombre completo (según cédula)",
+      "nombreCompletoPlaceholder": "Apellidos y nombres como en la cédula",
+      "nombreCompletoHint": "Escríbelo exactamente como aparece en la cédula",
+      "nombreCompleto": "Nombre completo (según cédula)",
       "campanaLabel": "Campaña",
       "campanaNone": "Sin campaña",
       "loadingCampanas": "Cargando campañas...",
-      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente"
+      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente",
+      "nombreCompletoRequired": "El nombre completo es obligatorio"
     },
     "detailView": {
       "tabs": {
@@ -458,13 +476,14 @@
       "ascp": "ASCP",
       "estado": "Estado",
       "biometria": "Biometría verificada",
-      "identificacion": "Identificación",
+      "identificacion": "Identificación Cedula",
       "identificacionRequired": "La identificación es obligatoria",
       "identificacionInvalid": "La identificación no es válida",
       "campana": "Campaña",
       "campanaNone": "Sin campaña",
       "origen": "Origen",
-      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente"
+      "toastVentasPrevias": "El cliente con el número de cédula {cedula} ya tiene {count} ventas ingresadas anteriormente",
+      "nombreCompleto": "Nombre completo (según cédula)"
     },
     "importModal": {
       "title": "Importar contactos",
@@ -611,7 +630,9 @@
       "toastDeleted": "Negocio eliminado",
       "noContactsFound": "Contacto no encontrado",
       "product": "Producto",
+      "nombreCompleto": "Nombre completo del contacto",
       "noProduct": "Sin producto",
+      "noProductsFound": "No se encontraron productos",
       "loadingProducts": "Cargando productos...",
       "selectProduct": "Selecciona un producto",
       "valueFromProduct": "Valor definido por el producto seleccionado",
@@ -628,6 +649,7 @@
       "toastBankDetailsRequired": "Entidad bancaria y número de cuenta son obligatorios para transferencia",
       "direccionCompleta": "Dirección completa",
       "direccionCompletaPlaceholder": "Escribe la dirección completa",
+      "toastSaleFieldsRequired": "Tipo de venta y operadora son obligatorios",
       "googleMapsLink": "Link de Google Maps",
       "ordenDeVenta": "Orden de venta",
       "ordenDeVentaPlaceholder": "Número de orden de venta",
@@ -647,7 +669,10 @@
       "unlocking": "Desbloqueando...",
       "toastFailedUnlock": "No se pudo desbloquear el negocio",
       "toastUnlocked": "Negocio desbloqueado",
-      "viewInTwenty": "Ver venta en Majois CRM"
+      "viewInTwenty": "Ver venta en Majois CRM",
+      "contactName": "Nombre",
+      "contactEmail": "Correo electrónico",
+      "toastContactIncomplete": "Completa los datos del contacto antes de crear el negocio"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

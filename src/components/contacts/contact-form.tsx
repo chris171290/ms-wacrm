@@ -27,7 +27,10 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
+import {
+  CONTACT_STATUS_OPTIONS,
+  SHOW_LEGACY_CONTACT_FIELDS,
+} from '@/lib/contacts/constants';
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
 import { useCampanas } from '@/hooks/use-campanas';
 import { checkVentasByCedula } from '@/lib/contacts/check-ventas';
@@ -57,6 +60,7 @@ export function ContactForm({
   const isEdit = !!contact;
 
   const [name, setName] = useState('');
+  const [nombreCompleto, setNombreCompleto] = useState('');
   const [phone, setPhone] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [identificacionError, setIdentificacionError] = useState('');
@@ -85,6 +89,7 @@ export function ContactForm({
   useEffect(() => {
     if (open) {
       setName(contact?.name ?? '');
+      setNombreCompleto(contact?.nombre_completo ?? '');
       setPhone(contact?.phone ?? '');
       setIdentificacion(contact?.identificacion ?? '');
       setIdentificacionError('');
@@ -179,6 +184,11 @@ export function ContactForm({
       return;
     }
 
+    if (!nombreCompleto.trim()) {
+      toast.error(t('nombreCompletoRequired'));
+      return;
+    }
+
     if (!validateIdentificacion(identificacion)) {
       toast.error(identificacionError || t('identificacionInvalid'));
       return;
@@ -210,6 +220,7 @@ export function ContactForm({
           .from('contacts')
           .update({
             name: name.trim() || null,
+            nombre_completo: nombreCompleto.trim() || null,
             phone: phone.trim(),
             identificacion: identificacion.trim(),
             campana_id: campanaId || null,
@@ -396,6 +407,20 @@ export function ContactForm({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="cf-nombre-completo" className="text-muted-foreground">
+              {t('nombreCompletoLabel')} <span className="text-red-400">*</span>
+            </Label>
+            <Input
+              id="cf-nombre-completo"
+              value={nombreCompleto}
+              onChange={(e) => setNombreCompleto(e.target.value)}
+              placeholder={t('nombreCompletoPlaceholder')}
+              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+            />
+            <p className="text-xs text-muted-foreground">{t('nombreCompletoHint')}</p>
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="cf-email" className="text-muted-foreground">
               {t('emailLabel')}
             </Label>
@@ -446,48 +471,51 @@ export function ContactForm({
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="cf-orden-venta" className="text-muted-foreground">
-              {t('ordenVentaLabel')}
-            </Label>
-            <Input
-              id="cf-orden-venta"
-              value={ordenVenta}
-              onChange={(e) => setOrdenVenta(e.target.value)}
-              placeholder={t('ordenVentaPlaceholder')}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
-            />
-          </div>
+          {SHOW_LEGACY_CONTACT_FIELDS && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="cf-orden-venta" className="text-muted-foreground">
+                  {t('ordenVentaLabel')}
+                </Label>
+                <Input
+                  id="cf-orden-venta"
+                  value={ordenVenta}
+                  onChange={(e) => setOrdenVenta(e.target.value)}
+                  placeholder={t('ordenVentaPlaceholder')}
+                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+                />
+              </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="cf-estado" className="text-muted-foreground">
-              {t('estadoLabel')}
-            </Label>
-            <select
-              id="cf-estado"
-              value={estado}
-              onChange={(e) => setEstado(e.target.value as ContactStatus)}
-              className="w-full h-9 rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              {CONTACT_STATUS_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+              <div className="space-y-2">
+                <Label htmlFor="cf-estado" className="text-muted-foreground">
+                  {t('estadoLabel')}
+                </Label>
+                <select
+                  id="cf-estado"
+                  value={estado}
+                  onChange={(e) => setEstado(e.target.value as ContactStatus)}
+                  className="w-full h-9 rounded-md border border-border bg-muted px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                >
+                  {CONTACT_STATUS_OPTIONS.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-          <div className="flex items-center gap-2.5">
-            <Checkbox
-              id="cf-biometria"
-              checked={biometria}
-              onCheckedChange={(checked) => setBiometria(checked === true)}
-            />
-            <Label htmlFor="cf-biometria" className="text-muted-foreground cursor-pointer">
-              {t('biometriaLabel')}
-            </Label>
-          </div>
-
+              <div className="flex items-center gap-2.5">
+                <Checkbox
+                  id="cf-biometria"
+                  checked={biometria}
+                  onCheckedChange={(checked) => setBiometria(checked === true)}
+                />
+                <Label htmlFor="cf-biometria" className="text-muted-foreground cursor-pointer">
+                  {t('biometriaLabel')}
+                </Label>
+              </div>
+            </>
+          )}
           <div className="space-y-2">
             <Label className="text-muted-foreground">{t('tagsLabel')}</Label>
             {loadingTags ? (

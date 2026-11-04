@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
+import { useCan } from "@/hooks/use-can";
 import type { Contact, Deal, ContactNote, Tag } from "@/types";
+import { toast } from "sonner";
+import { validarIdentificacionEcuador } from "@/lib/contacts/cedula-validator";
+import { isUniqueViolation } from "@/lib/contacts/dedupe";
+import { checkVentasByCedula } from "@/lib/contacts/check-ventas";
 import {
   Phone,
   Mail,
@@ -15,6 +20,7 @@ import {
   DollarSign,
   StickyNote,
   Plus,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,9 +29,155 @@ import { useTranslations } from "next-intl";
 
 interface ContactSidebarProps {
   contact: Contact | null;
+  onContactUpdated?: (contact: Contact) => void;
 }
 
-export function ContactSidebar({ contact }: ContactSidebarProps) {
+function ContactQuickEdit({
+  contact,
+  onUpdated,
+}: {
+  contact: Contact;
+  onUpdated?: (contact: Contact) => void;
+}) {
+  const t = useTranslations("Inbox.sidebar");
+  const canEdit = useCan("send-messages");
+  const [identificacion, setIdentificacion] = useState(contact.identificacion ?? "");
+  const [nombreCompleto, setNombreCompleto] = useState(contact.nombre_completo ?? "");
+  const [email, setEmail] = useState(contact.email ?? "");
+  const [saving, setSaving] = useState(false);
+  const [identificacionError, setIdentificacionError] = useState("");
+  const lastCheckedCedulaRef = useRef<string | null>(null);
+
+  const dirty =
+    identificacion.trim() !== (contact.identificacion ?? "") ||
+    nombreCompleto.trim() !== (contact.nombre_completo ?? "") ||
+    email.trim() !== (contact.email ?? "");
+
+  async function handleIdentificacionBlur() {
+    const ced = identificacion.trim();
+    if (!ced) {
+      setIdentificacionError("");
+      return;
+    }
+    if (!validarIdentificacionEcuador(ced)) {
+      setIdentificacionError(t("identificacionInvalid"));
+      return;
+    }
+    setIdentificacionError("");
+
+    if (lastCheckedCedulaRef.current === ced) return;
+    lastCheckedCedulaRef.current = ced;
+
+    const count = await checkVentasByCedula(ced);
+    if (count && count > 0) {
+      toast.warning(t("toastVentasPrevias", { cedula: ced, count }), {
+        duration: 10000,
+      });
+    }
+  }
+  
+
+  async function handleSave() {
+    const ced = identificacion.trim();
+    const mail = email.trim();
+
+    if (ced && !validarIdentificacionEcuador(ced)) {
+      setIdentificacionError(t("identificacionInvalid"));
+      toast.error(t("identificacionInvalid"));
+      return;
+    }
+    if (mail && !/^\S+@\S+\.\S+$/.test(mail)) {
+      toast.error(t("emailInvalid"));
+      return;
+    }
+
+    setSaving(true);
+    const supabase = createClient();
+    const { data, error } = await supabase
+      .from("contacts")
+      .update({
+        identificacion: ced || null,
+        nombre_completo: nombreCompleto.trim() || null,
+        email: mail || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", contact.id)
+      .select()
+      .single();
+    setSaving(false);
+
+    if (error || !data) {
+      toast.error(isUniqueViolation(error) ? t("identificacionDuplicate") : t("toastSaveFailed"));
+      return;
+    }
+    toast.success(t("toastSaved"));
+    onUpdated?.({ ...contact, ...data });
+  }
+
+  const inputClass =
+    "w-full rounded-lg border border-border bg-muted px-3 py-1.5 text-xs text-foreground placeholder-muted-foreground outline-none focus:border-primary/50 disabled:opacity-60";
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 px-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+        <User className="h-3 w-3" />
+        {t("quickEditTitle")}
+      </div>
+      <div className="mt-2 space-y-2">
+        <div className="space-y-1">
+          <label className="px-1 text-[11px] text-muted-foreground">{t("identificacion")}</label>
+          <input
+            value={identificacion}
+            onChange={(e) => {
+              setIdentificacion(e.target.value);
+              if (identificacionError) setIdentificacionError("");
+            }}
+            onBlur={handleIdentificacionBlur}
+            maxLength={13}
+            inputMode="numeric"
+            disabled={!canEdit}
+            placeholder={t("identificacionPlaceholder")}
+            className={inputClass}
+          />
+          {identificacionError && (
+            <p className="px-1 text-xs text-red-400">{identificacionError}</p>
+          )}
+        </div>
+        <div className="space-y-1">
+          <label className="px-1 text-[11px] text-muted-foreground">{t("nombreCompleto")}</label>
+          <input
+            value={nombreCompleto}
+            onChange={(e) => setNombreCompleto(e.target.value)}
+            disabled={!canEdit}
+            placeholder={t("nombreCompletoPlaceholder")}
+            className={inputClass}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="px-1 text-[11px] text-muted-foreground">{t("email")}</label>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={!canEdit}
+            placeholder="correo@ejemplo.com"
+            className={inputClass}
+          />
+        </div>
+        <Button
+          size="sm"
+          className="w-full bg-primary hover:bg-primary/90"
+          onClick={handleSave}
+          disabled={!canEdit || !dirty || saving || !!identificacionError}
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : t("save")}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export function ContactSidebar({ contact, onContactUpdated }: ContactSidebarProps) {
   const tSidebar = useTranslations("Inbox.sidebar");
   const tThread = useTranslations("Inbox.messageThread");
 
@@ -170,13 +322,17 @@ export function ContactSidebar({ contact }: ContactSidebarProps) {
               )}
             </button>
 
-            {contact.email && (
-              <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 text-muted-foreground" />
-                <span className="truncate">{contact.email}</span>
-              </div>
-            )}
           </div>
+
+          {/* Divider */}
+          <div className="my-4 border-t border-border" />
+
+          {/* Datos del cliente: edición rápida */}
+          <ContactQuickEdit
+            key={`${contact.id}-${contact.updated_at}`}
+            contact={contact}
+            onUpdated={onContactUpdated}
+          />          
 
           {/* Divider */}
           <div className="my-4 border-t border-border" />

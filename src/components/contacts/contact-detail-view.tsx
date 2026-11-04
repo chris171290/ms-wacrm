@@ -42,7 +42,10 @@ import {
   FlagTriangleRight
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { CONTACT_STATUS_OPTIONS } from '@/lib/contacts/constants';
+import {
+  CONTACT_STATUS_OPTIONS,
+  SHOW_LEGACY_CONTACT_FIELDS,
+} from '@/lib/contacts/constants';
 import { Checkbox } from '@/components/ui/checkbox'
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
 import { useCampanas } from '@/hooks/use-campanas';
@@ -77,6 +80,7 @@ export function ContactDetailView({
 
   // Details tab
   const [editName, setEditName] = useState('');
+  const [editNombreCompleto, setEditNombreCompleto] = useState('');
   const [editPhone, setEditPhone] = useState('');
   const [editIdentificacion, setEditIdentificacion] = useState('');
   const [identificacionError, setIdentificacionError] = useState('');
@@ -123,6 +127,7 @@ export function ContactDetailView({
     if (data) {
       setContact(data);
       setEditName(data.name ?? '');
+      setEditNombreCompleto(data.nombre_completo ?? '');
       setEditPhone(data.phone);
       setEditIdentificacion(data.identificacion ?? '');
       setIdentificacionError('');
@@ -254,6 +259,11 @@ export function ContactDetailView({
       return;
     }
 
+    if (!editNombreCompleto.trim()) {
+      toast.error(t('nombreCompletoRequired'));
+      return;
+    }
+
     if (!validateIdentificacion(editIdentificacion)) {
       toast.error(identificacionError || t('identificacionInvalid'));
       return;
@@ -266,6 +276,7 @@ export function ContactDetailView({
       .from('contacts')
       .update({
         name: editName.trim() || null,
+        nombre_completo: editNombreCompleto.trim() || null,
         phone: editPhone.trim(),
         identificacion: editIdentificacion.trim(),
         email: editEmail.trim() || null,
@@ -616,6 +627,16 @@ export function ContactDetailView({
                     )}
                   </div>
                   <div className="space-y-1.5">
+                    <Label className="text-muted-foreground text-xs">
+                      {t('nombreCompleto')} <span className="text-red-400">*</span>
+                    </Label>
+                    <Input
+                      value={editNombreCompleto}
+                      onChange={(e) => setEditNombreCompleto(e.target.value)}
+                      className="bg-muted border-border text-foreground h-8 text-sm"
+                    />
+                  </div>                  
+                  <div className="space-y-1.5">
                     <Label className="text-muted-foreground text-xs">{t('email')}</Label>
                     <Input
                       value={editEmail}
@@ -647,38 +668,42 @@ export function ContactDetailView({
                       ))}
                     </select>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t('ordenVenta')}</Label>
-                    <Input
-                      value={editOrdenVenta}
-                      onChange={(e) => setEditOrdenVenta(e.target.value)}
-                      className="bg-muted border-border text-foreground h-8 text-sm"
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-muted-foreground text-xs">{t('estado')}</Label>
-                    <select
-                      value={editEstado}
-                      onChange={(e) => setEditEstado(e.target.value as ContactStatus)}
-                      className="w-full h-8 rounded-md border border-border bg-muted px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                    >
-                      {CONTACT_STATUS_OPTIONS.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="flex items-center gap-2.5 pt-1">
-                    <Checkbox
-                      id="dv-biometria"
-                      checked={editBiometria}
-                      onCheckedChange={(checked) => setEditBiometria(checked === true)}
-                    />
-                    <Label htmlFor="dv-biometria" className="text-muted-foreground text-xs cursor-pointer">
-                      {t('biometria')}
-                    </Label>
-                  </div>
+                  {SHOW_LEGACY_CONTACT_FIELDS && (
+                    <>
+                      <div className="space-y-1.5">
+                        <Label className="text-muted-foreground text-xs">{t('ordenVenta')}</Label>
+                        <Input
+                          value={editOrdenVenta}
+                          onChange={(e) => setEditOrdenVenta(e.target.value)}
+                          className="bg-muted border-border text-foreground h-8 text-sm"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-muted-foreground text-xs">{t('estado')}</Label>
+                        <select
+                          value={editEstado}
+                          onChange={(e) => setEditEstado(e.target.value as ContactStatus)}
+                          className="w-full h-8 rounded-md border border-border bg-muted px-2.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          {CONTACT_STATUS_OPTIONS.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2.5 pt-1">
+                        <Checkbox
+                          id="dv-biometria"
+                          checked={editBiometria}
+                          onCheckedChange={(checked) => setEditBiometria(checked === true)}
+                        />
+                        <Label htmlFor="dv-biometria" className="text-muted-foreground text-xs cursor-pointer">
+                          {t('biometria')}
+                        </Label>
+                      </div>
+                    </>
+                  )}
                   <Button
                     onClick={saveDetails}
                     disabled={savingDetails || !!identificacionError}

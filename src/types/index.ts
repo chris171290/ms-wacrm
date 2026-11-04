@@ -110,6 +110,7 @@ export interface Contact {
    *  and unique per account. Read-only. */
   phone_normalized?: string;
   name?: string;
+  nombre_completo?: string | null;
   email?: string;
   company?: string;
   avatar_url?: string;

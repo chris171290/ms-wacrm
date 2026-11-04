@@ -40,12 +40,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal.tipo_de_venta) missing.push("tipo_de_venta");
     if (!deal.operadora) missing.push("operadora");
     if (!deal.contact?.identificacion) missing.push("contacto.identificacion");
+    if (!deal.contact.nombre_completo?.trim()) missing.push("contacto.nombre_completo");
 
     console.log(missing)
 
     if (missing.length > 0) {
       return NextResponse.json({ error: "Faltan campos obligatorios", missing }, { status: 400 });
     }
+
+    const clientName = deal.contact.nombre_completo.trim();
 
     let person: { id: string };
     let opportunity: { id: string };
@@ -56,7 +59,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         : null;
 
       person = await findOrCreateTwentyPerson({
-        name: deal.contact.name || deal.contact.phone,
+        name: clientName,
         identificacion: deal.contact.identificacion,
         phone: deal.contact.phone,
         email: deal.contact.email,
@@ -67,7 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       });
 
       opportunity = await createTwentyOpportunity({
-        contactName: deal.contact.name || deal.contact.phone,
+        contactName: clientName,
         pointOfContactId: person.id,
         productoId: deal.producto_id,
         amount: deal.value,
