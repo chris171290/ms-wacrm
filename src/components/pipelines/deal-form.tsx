@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { getAgentEditableStageIds } from "@/lib/pipelines/agent-stages";
 import {
   Check,
   X,
@@ -67,8 +68,14 @@ export function DealForm({
   const { accountId, defaultCurrency, accountRole, profile } = useAuth(); 
   const isAgent = accountRole === "agent";
   // const lockStageForAgent = isAgent && !deal;
-  const lockStageForAgent = isAgent
+  // const lockStageForAgent = isAgent
   const isLocked = !!deal?.esta_integrado;
+
+  // Un agente solo edita deals que están en las dos primeras etapas.
+  const editableStageIds = useMemo(() => getAgentEditableStageIds(stages), [stages]);
+  const stageReadOnlyForAgent =
+    isAgent && !!deal && !editableStageIds.has(deal.stage_id);
+  const isReadOnly = isLocked || stageReadOnlyForAgent; 
   const canUnlock = accountRole === "admin" || accountRole === "owner";
   const [unlocking, setUnlocking] = useState(false);
 
@@ -567,7 +574,12 @@ export function DealForm({
                 )}
               </div>
             )}
-            <fieldset disabled={isLocked} className="contents">
+            {stageReadOnlyForAgent && !isLocked && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+                {t("stageReadOnlyBanner")}
+              </div>
+            )}
+            <fieldset disabled={isReadOnly} className="contents">
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t("product")}
                   <span className="text-red-400">*</span>
@@ -725,7 +737,7 @@ export function DealForm({
                 <select
                   value={stageId}
                   onChange={(e) => setStageId(e.target.value)}
-                  disabled={lockStageForAgent}
+                  disabled={isAgent}
                   className="h-9 w-full rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {stages.map((s) => (
@@ -1031,7 +1043,7 @@ export function DealForm({
           </div>
 
             <div className="border-t border-border/50 bg-popover/80 p-4">
-              {!(isAgent && isLocked) && (
+              {!(isAgent && isReadOnly) && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
@@ -1062,7 +1074,7 @@ export function DealForm({
               )}
 
               {deal &&
-              !(isAgent && isLocked) &&
+              !(isAgent && isReadOnly) &&
                 (confirmDelete ? (
                   <div className="mt-3 flex items-center justify-between gap-2 rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs">
                     <span className="text-red-300">{t("deletePrompt")}</span>

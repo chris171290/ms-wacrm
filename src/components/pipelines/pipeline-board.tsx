@@ -19,6 +19,7 @@ import { DealCard } from "./deal-card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { canMoveDealStages } from "@/lib/auth/roles";
 import { formatCurrency } from "@/lib/currency";
 import { useTranslations } from "next-intl";
 
@@ -37,13 +38,17 @@ export function PipelineBoard({
   onAddDeal,
   onEditDeal,
 }: PipelineBoardProps) {
-  const { defaultCurrency } = useAuth();
+
+  const { defaultCurrency, accountRole } = useAuth();
+  const canMoveDeals = !!accountRole && canMoveDealStages(accountRole);
   const [activeDealId, setActiveDealId] = useState<string | null>(null);
 
   const sortedStages = useMemo(
     () => [...stages].sort((a, b) => a.position - b.position),
     [stages],
   );
+
+  const firstStageId = sortedStages[0]?.id;
 
   const dealsByStage = useMemo(() => {
     const map = new Map<string, Deal[]>();
@@ -73,6 +78,7 @@ export function PipelineBoard({
 
   function handleDragEnd(event: DragEndEvent) {
     setActiveDealId(null);
+    if (!canMoveDeals) return;
     const { active, over } = event;
     if (!over) return;
     const dealId = String(active.id);
@@ -119,6 +125,8 @@ export function PipelineBoard({
               currency={defaultCurrency}
               onAddDeal={onAddDeal}
               onEditDeal={onEditDeal}
+              canMoveDeals={canMoveDeals}
+              showAddButton={canMoveDeals || stage.id === firstStageId}              
             />
           );
         })}
@@ -193,6 +201,8 @@ function StageColumn({
   currency,
   onAddDeal,
   onEditDeal,
+  canMoveDeals,
+  showAddButton,    
 }: {
   stage: PipelineStage;
   deals: Deal[];
@@ -200,6 +210,8 @@ function StageColumn({
   currency: string;
   onAddDeal: (stageId: string) => void;
   onEditDeal: (deal: Deal) => void;
+  canMoveDeals: boolean;
+  showAddButton: boolean;
 }) {
   const t = useTranslations("Pipelines.board");
   const { setNodeRef, isOver } = useDroppable({ id: stage.id });
@@ -248,20 +260,22 @@ function StageColumn({
               deal={deal}
               stage={stage}
               onEdit={onEditDeal}
+              disabled={!canMoveDeals}
             />
           ))
         )}
       </div>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => onAddDeal(stage.id)}
-        className="mt-3 w-full justify-start border border-dashed border-border bg-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
-      >
-        <Plus className="mr-1 h-3 w-3" />
-        {t("addDeal")}
-      </Button>
+      {showAddButton && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onAddDeal(stage.id)}
+          className="mt-3 w-full justify-start border border-dashed border-border bg-transparent text-muted-foreground hover:border-border hover:bg-muted hover:text-foreground"
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          {t("addDeal")}
+        </Button>
+      )}
     </div>
   );
 }
@@ -270,13 +284,16 @@ function DraggableDealCard({
   deal,
   stage,
   onEdit,
+  disabled
 }: {
   deal: Deal;
   stage: PipelineStage;
   onEdit: (deal: Deal) => void;
+  disabled: boolean;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: deal.id,
+    disabled
   });
 
   return (
@@ -284,7 +301,7 @@ function DraggableDealCard({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={{ opacity: isDragging ? 0.3 : 1, touchAction: "none" }}
+      style={{ opacity: isDragging ? 0.3 : 1, touchAction: disabled ? "auto" : "none" }}
     >
       <DealCard deal={deal} stage={stage} onEdit={onEdit} />
     </div>

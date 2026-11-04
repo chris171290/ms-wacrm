@@ -656,6 +656,7 @@
       "fechaAlta": "Fecha de alta",
       "celularAsignado": "Celular asignado",
       "celularAsignadoPlaceholder": "Número de celular asignado",
+      "stageReadOnlyBanner": "Como agente solo puedes editar negocios en las dos primeras etapas del embudo.",
       "nip": "NIP",
       "nipPlaceholder": "NIP",      
       "googleMapsLinkPlaceholder": "https://maps.google.com/...",

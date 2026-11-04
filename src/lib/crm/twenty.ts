@@ -147,16 +147,16 @@ export interface CreateOpportunityInput {
   productoId: string;
   amount: number;
   currency: string;
-  formaDePago?: string | null;
+  formaDePago: string;
   icc?: string | null;
   mesh?: boolean | null;
-  direccionCompleta?: string | null;
+  direccionCompleta: string;
   googleMapsLink?: string | null;
-  ordenDeVenta?: string | null;
-  ownerId?: string | null;
-  tipoDeVenta?: string | null;
-  operadora?: string | null;
-  fechaAlta?: string | null;
+  ordenDeVenta: string;
+  ownerId: string;
+  tipoDeVenta: string;
+  operadora: string;
+  fechaAlta: string;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -180,21 +180,34 @@ export async function findTwentyWorkspaceMemberByEmail(email: string): Promise<{
 
 
 export async function createTwentyOpportunity(input: CreateOpportunityInput) {
+  const formaDePago = mapFormaDePago(input.formaDePago);
+  const tipoDeVenta = mapTipoVenta(input.tipoDeVenta);
+  const operadora = mapOperadora(input.operadora);
+
+  const unmapped = [
+    !formaDePago && `formaDePago "${input.formaDePago}"`,
+    !tipoDeVenta && `tipoDeVenta "${input.tipoDeVenta}"`,
+    !operadora && `operadora "${input.operadora}"`,
+  ].filter(Boolean);
+  if (unmapped.length > 0) {
+    throw new Error(`Twenty: valores sin mapeo: ${unmapped.join(", ")}`);
+  }
+
   const body = {
     name: input.contactName,
     nombreDelContacto: input.contactName,
     pointOfContactId: input.pointOfContactId,
     productoId: input.productoId,
     amount: { amountMicros: Math.round(input.amount * 1_000_000), currencyCode: input.currency },
-    formaDePago: mapFormaDePago(input.formaDePago),
+    formaDePago: formaDePago,
     icc: { blocknote: null, markdown: input.icc ?? "" },
     mesh: meshToTwentyText(input.mesh),
     direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
     ordenDeVenta: input.ordenDeVenta ?? null,
     ownerId: input.ownerId ?? null,
     fechaAltaEInstalacion: input.fechaAlta ?? null,
-    tipoDeVenta: mapTipoVenta(input.tipoDeVenta),
-    operadora: mapOperadora(input.operadora),
+    tipoDeVenta,
+    operadora,
     equipo: "CALL_CENTER_NORTE",
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };

@@ -116,3 +116,8 @@ export function canDeleteAccount(role: AccountRole): boolean {
 export function canTransferOwnership(role: AccountRole): boolean {
   return role === "owner";
 }
+
+/** Owner / admin: mover deals entre etapas del embudo. */
+export function canMoveDealStages(role: AccountRole): boolean {
+  return hasMinRole(role, "admin");
+}

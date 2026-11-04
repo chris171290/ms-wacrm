@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole, toErrorResponse } from "@/lib/auth/account";
-import { createTwentyPerson, createTwentyOpportunity, findTwentyWorkspaceMemberByEmail, findOrCreateTwentyPerson } from "@/lib/crm/twenty";
-import { convertSegmentPathToStaticExportFilename } from "next/dist/shared/lib/segment-cache/segment-value-encoding";
+import { createTwentyOpportunity, findTwentyWorkspaceMemberByEmail, findOrCreateTwentyPerson } from "@/lib/crm/twenty";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -48,15 +47,37 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Faltan campos obligatorios", missing }, { status: 400 });
     }
 
+    // ownerId es obligatorio: es como Twenty identifica a quién pertenece
+    // la venta. Se resuelve ANTES de crear la Person para no dejar datos
+    // huérfanos en Twenty si el responsable no existe.
+    let owner: { id: string } | null;
+    try {
+      owner = deal.assignee?.email
+        ? await findTwentyWorkspaceMemberByEmail(deal.assignee.email)
+        : null;
+    } catch (err) {
+      console.error("[deals/mark-won] Twenty owner lookup failed:", err);
+      return NextResponse.json(
+        { error: "No se pudo consultar el responsable en Twenty. El negocio no se marcó como ganado." },
+        { status: 502 },
+      );
+    }
+
+    if (!owner) {
+      return NextResponse.json(
+        {
+          error:
+            "El agente asignado no tiene un usuario con el mismo correo en Twenty. El negocio no se marcó como ganado.",
+        },
+        { status: 422 },
+      );
+    }    
+
     const clientName = deal.contact.nombre_completo.trim();
 
     let person: { id: string };
     let opportunity: { id: string };
     try {
-      console.log(deal.assignee.email)
-      const owner = deal.assignee?.email
-        ? await findTwentyWorkspaceMemberByEmail(deal.assignee.email)
-        : null;
 
       person = await findOrCreateTwentyPerson({
         name: clientName,
@@ -81,9 +102,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         direccionCompleta: deal.direccion_completa,
         googleMapsLink: deal.google_maps_link,
         ordenDeVenta: deal.orden_de_venta,
-        ownerId: owner?.id ?? null,
+        ownerId: owner.id,
         tipoDeVenta: deal.tipo_de_venta,
         operadora: deal.operadora,
+        fechaAlta: deal.fecha_alta
       });
     } catch (err) {
       console.error("[deals/mark-won] Twenty sync failed:", err);
