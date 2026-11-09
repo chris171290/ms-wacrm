@@ -12,9 +12,13 @@ import {
   Bot,
   Crown,
   GitBranch,
+  LifeBuoy,
   LayoutDashboard,
   LogOut,
   MessageSquare,
+  BookOpen,
+  ExternalLink,
+  FileText,
   Radio,
   Settings,
   Shield,
@@ -26,8 +30,9 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import type { AccountRole } from "@/lib/auth/roles";
+import { hasMinRole, type AccountRole } from "@/lib/auth/roles";
 import Image from "next/image";
+import { SUPPORT_WHATSAPP_URL } from "@/lib/support";
 
 // Per-role chip metadata used in the sidebar's account strip + the
 // Members tab roster. Keeping this near both consumers in a single
@@ -106,6 +111,22 @@ const bottomNavItems = [
   //{ href: "/settings", labelKey: "settings", icon: Settings },
 ];
 
+interface ManualItem {
+  href: string;
+  labelKey: string;
+  icon: typeof BookOpen;
+  /** Rol mínimo que ve el enlace. */
+  minRole: AccountRole;
+}
+
+// Los PDFs viven en /public/manuals. Si actualizas uno, súbelo con otro
+// nombre (p. ej. manual-agente-v2.pdf) y cambia el href: el CDN cachea las
+// páginas hasta 24 h y podría servir la versión anterior.
+const manualItems: ManualItem[] = [
+  { href: "/manuales/manual-agente.pdf", labelKey: "manualAgent", icon: BookOpen, minRole: "viewer" },
+  { href: "/manuales/manual-supervisor.pdf", labelKey: "manualSupervisor", icon: FileText, minRole: "admin" },
+];
+
 interface SidebarProps {
   /** Controlled on mobile by the Header's hamburger button. Ignored on lg+. */
   open?: boolean;
@@ -113,6 +134,17 @@ interface SidebarProps {
 }
 
 import { useTranslations } from "next-intl";
+
+function SidebarSectionTitle({ label }: { label: string }) {
+  return (
+    <div className="mt-4 flex items-center gap-2 px-3 pb-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+        {label}
+      </span>
+      <span className="h-px flex-1 bg-border/60" />
+    </div>
+  );
+}
 
 export function Sidebar({ open = false, onClose }: SidebarProps) {
   const t = useTranslations("Sidebar");
@@ -158,6 +190,10 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
   }, [open, onClose]);
 
   const companyLogoUrl = '/logo2.png'
+
+  const visibleManuals = accountRole
+    ? manualItems.filter((m) => hasMinRole(accountRole, m.minRole))
+    : [];
 
   return (
     <>
@@ -287,28 +323,45 @@ export function Sidebar({ open = false, onClose }: SidebarProps) {
             })}
           </ul>
 
-          <div className="my-4 border-t border-border" />
+          {/* <div className="my-4 border-t border-border" /> */}
+            {visibleManuals.length > 0 && (
+            <>
+              <SidebarSectionTitle label={t("manualsSection")} />
+              <ul className="flex flex-col gap-1">
+                {visibleManuals.map((item) => (
+                  <li key={item.href}>
+                    <a
+                      href={item.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={onClose}
+                      className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:py-2"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span className="flex-1">{t(item.labelKey as string)}</span>
+                      <ExternalLink className="h-3 w-3 opacity-60" />
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
 
+          <SidebarSectionTitle label={t("supportSection")} />
           <ul className="flex flex-col gap-1">
-            {/* {bottomNavItems.map((item) => {
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors lg:py-2",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    )}
-                  >
-                    <item.icon className="h-4 w-4" />
-                    {t(item.labelKey as string)}
-                  </Link>
-                </li>
-              );
-            })} */}
+            <li>
+              <a
+                href={SUPPORT_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={onClose}
+                className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:py-2"
+              >
+                <LifeBuoy className="h-4 w-4" />
+                <span className="flex-1">{t("supportLink")}</span>
+                <ExternalLink className="h-3 w-3 opacity-60" />
+              </a>
+            </li>
           </ul>
         </nav>
 

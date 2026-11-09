@@ -40,7 +40,12 @@
     "defaultAvatar": "Avatar",
     "menuProfile": "Perfil",
     "menuSettings": "Configuración",
-    "menuSignOut": "Cerrar sesión"
+    "menuSignOut": "Cerrar sesión",
+    "manualAgent": "Manual Agente",
+    "manualSupervisor": "Manual Supervisor",
+    "supportLink": "Escríbenos por WhatsApp",
+    "manualsSection": "Manuales",
+    "supportSection": "Soporte"    
   },
   "Header": {
     "dashboard": "Panel",
@@ -673,7 +678,10 @@
       "viewInTwenty": "Ver venta en Majois CRM",
       "contactName": "Nombre",
       "contactEmail": "Correo electrónico",
-      "toastContactIncomplete": "Completa los datos del contacto antes de crear el negocio"
+      "toastContactIncomplete": "Completa los datos del contacto antes de crear el negocio",
+      "contactIncompleteSelect": "No puedes seleccionar este contacto. Falta: {fields}",
+      "contactMissingInline": "Falta: {fields}",
+      "identificacion": "Identificación"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

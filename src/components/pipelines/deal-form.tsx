@@ -33,7 +33,8 @@ import {
   Loader2,
   Search,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -43,6 +44,7 @@ import { useEntidadesBancarias } from "@/hooks/use-entidades-bancarias";
 import { FORMA_PAGO_OPTIONS, TIPO_VENTA_OPTIONS, OPERADORA_OPTIONS } from "@/lib/deals/constants";
 import type { FormaPago, TipoVenta, Operadora } from "@/types";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getMissingContactFields } from "@/lib/contacts/completeness";
 
 interface DealFormProps {
   open: boolean;
@@ -298,16 +300,13 @@ export function DealForm({
       return;
     }
 
-    // Al crear un deal, el contacto debe tener sus datos completos.
+    // Red de seguridad: el buscador ya bloquea contactos incompletos.
     if (!deal) {
-      const missingContact: string[] = [];
-      if (!selectedContact?.name?.trim()) missingContact.push(t("contactName"));
-      if (!selectedContact?.nombre_completo?.trim()) missingContact.push(t("nombreCompleto"));
-      if (!selectedContact?.identificacion?.trim()) missingContact.push(t("identificacion"));
-      if (!selectedContact?.email?.trim()) missingContact.push(t("contactEmail"));
-
-      if (missingContact.length > 0) {
-        toast.error(`${t("toastContactIncomplete")}: ${missingContact.join(", ")}`);
+      const missing = getMissingContactFields(selectedContact);
+      if (missing.length > 0) {
+        toast.error(
+          `${t("toastContactIncomplete")}: ${missing.map((k) => t(k)).join(", ")}`,
+        );
         return;
       }
     }
@@ -527,7 +526,7 @@ export function DealForm({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="bg-popover border-border text-popover-foreground sm:max-w-lg w-full p-0"
+        className="bg-popover border-border text-popover-foreground p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
       >
         <div className="flex h-full flex-col">
           <SheetHeader className="border-b border-border/50 p-4">
@@ -579,7 +578,7 @@ export function DealForm({
                 {t("stageReadOnlyBanner")}
               </div>
             )}
-            <fieldset disabled={isReadOnly} className="contents">
+            <fieldset disabled={isReadOnly} className="min-w-0 space-y-3">
               <div className="grid gap-2">
                 <Label className="text-muted-foreground">{t("product")}
                   <span className="text-red-400">*</span>
@@ -637,32 +636,56 @@ export function DealForm({
                         {t("noContactsFound")}
                       </p>
                     ) : (
-                      filteredContacts.map((c) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          onClick={() => {
-                            setContactId(c.id);
-                            setContactQuery(contactLabel(c));
-                            setContactDropdownOpen(false);
-                          }}
-                          className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm hover:bg-muted ${
-                            c.id === contactId ? "bg-muted" : ""
-                          }`}
-                        >
-                          <span className="text-foreground">{contactLabel(c)}</span>
-                          <span className="text-xs text-muted-foreground">
-                          {[
-                            c.name && c.name !== contactLabel(c) ? c.name : null,
-                            c.identificacion,
-                            c.phone,
-                            c.email,
-                          ]
-                              .filter(Boolean)
-                              .join(" · ")}
-                          </span>
-                        </button>
-                      ))
+                      filteredContacts.map((c) => {
+                        const missing = getMissingContactFields(c);
+                        const incomplete = missing.length > 0;
+                        const missingText = missing.map((k) => t(k)).join(", ");
+                        return (
+                          <button
+                            key={c.id}
+                            type="button"
+                            aria-disabled={incomplete}
+                            onClick={() => {
+                              if (incomplete) {
+                                toast.error(
+                                  t("contactIncompleteSelect", { fields: missingText }),
+                                );
+                                return;
+                              }
+                              setContactId(c.id);
+                              setContactQuery(contactLabel(c));
+                              setContactDropdownOpen(false);
+                            }}
+                            className={`flex w-full flex-col items-start px-3 py-2 text-left text-sm ${
+                              incomplete ? "cursor-not-allowed" : "hover:bg-muted"
+                            } ${c.id === contactId ? "bg-muted" : ""}`}
+                          >
+                            <span
+                              className={
+                                incomplete ? "text-muted-foreground" : "text-foreground"
+                              }
+                            >
+                              {contactLabel(c)}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {[
+                                c.name && c.name !== contactLabel(c) ? c.name : null,
+                                c.identificacion,
+                                c.phone,
+                                c.email,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                            {incomplete && (
+                              <span className="mt-0.5 flex items-center gap-1 text-xs text-amber-500">
+                                <AlertCircle className="h-3 w-3 shrink-0" />
+                                {t("contactMissingInline", { fields: missingText })}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })
                     )}
                   </div>
                 )}              
