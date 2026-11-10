@@ -45,6 +45,8 @@ import { FORMA_PAGO_OPTIONS, TIPO_VENTA_OPTIONS, OPERADORA_OPTIONS } from "@/lib
 import type { FormaPago, TipoVenta, Operadora } from "@/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getMissingContactFields } from "@/lib/contacts/completeness";
+import { DealAttachments } from "@/components/pipelines/deal-attachments";
+import { uploadStagedAttachments, type StagedAttachment } from "@/lib/deals/attachments-client";
 
 interface DealFormProps {
   open: boolean;
@@ -116,6 +118,7 @@ export function DealForm({
   const contactWrapperRef = useRef<HTMLDivElement>(null);
 
   const [saving, setSaving] = useState(false);
+  const [stagedAttachments, setStagedAttachments] = useState<StagedAttachment[]>([]);
   const [statusAction, setStatusAction] = useState<DealStatus | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -154,6 +157,7 @@ export function DealForm({
   useEffect(() => {
     if (!open) return;
     setConfirmDelete(false);
+    setStagedAttachments([]);
     if (deal) {
       // setTitle(deal.title);
       setValue(String(deal.value ?? ""));
@@ -352,6 +356,8 @@ export function DealForm({
       numero_cuenta: isTransferencia ? numeroCuenta.trim() || null : null,
     };
 
+    let newDealId: string | null = null;
+
     if (deal) {
       const { error } = await supabase
         .from("deals")
@@ -377,18 +383,31 @@ export function DealForm({
         setSaving(false);
         return;
       }
-      const { error } = await supabase
+      const { data: created, error } = await supabase
         .from("deals")
-        .insert({ ...payload, user_id: user.id, account_id: accountId, status: "open" });
-      if (error) {
+        .insert({ ...payload, user_id: user.id, account_id: accountId, status: "open" })
+        .select("id")
+        .single();
+      if (error || !created) {
         toast.error(t("toastFailedCreate"));
         setSaving(false);
         return;
       }
+      newDealId = created.id as string;
+    }
+
+    // Sube los documentos pendientes ahora que el deal ya tiene id.
+    const savedDealId = deal?.id ?? newDealId;
+    let failedUploads = 0;
+    if (savedDealId && stagedAttachments.length > 0) {
+      failedUploads = (await uploadStagedAttachments(savedDealId, stagedAttachments)).length;
     }
 
     setSaving(false);
     toast.success(deal ? t("toastUpdated") : t("toastCreated"));
+    if (failedUploads > 0) {
+      toast.error(t("attachments.toastSomeFailed", { count: failedUploads }));
+    }
     onOpenChange(false);
     onSaved();
   }
@@ -1063,6 +1082,12 @@ export function DealForm({
                 </div>
               )}
             </fieldset>
+            <DealAttachments
+              dealId={deal?.id ?? null}
+              readOnly={isReadOnly}
+              staged={stagedAttachments}
+              onStagedChange={setStagedAttachments}
+            />
           </div>
 
             <div className="border-t border-border/50 bg-popover/80 p-4">

@@ -593,6 +593,40 @@
       "lost": "Perdido"
     },
     "form": {
+      "attachments": {
+        "title": "Documentos adjuntos",
+        "selectType": "Selecciona el tipo de documento",
+        "chooseFile": "Seleccionar archivo",
+        "hint": "JPG, PNG, WebP o PDF · máximo 8 MB por archivo",
+        "types": {
+          "cedula": "Cédula",
+          "comprobante_transferencia": "Comprobante de transferencia"
+        },
+        "pending": "Pendientes (se suben al guardar el negocio)",
+        "view": "Ver",
+        "delete": "Eliminar",
+        "confirmDelete": "¿Eliminar?",
+        "confirm": "Sí",
+        "cancel": "No",
+        "toastDeleted": "Documento eliminado",
+        "toastSomeFailed": "El negocio se guardó, pero {count} archivo(s) no se pudieron subir. Ábrelo de nuevo para reintentar.",
+        "errors": {
+          "select_type_first": "Primero selecciona el tipo de documento",
+          "invalid_document_type": "Tipo de documento no válido",
+          "missing_file": "No se recibió ningún archivo",
+          "empty_file": "El archivo está vacío",
+          "too_large": "El archivo supera los 8 MB",
+          "invalid_type": "Formato no permitido. Usa JPG, PNG, WebP o PDF",
+          "limit_reached": "Ya alcanzaste el máximo de 5 archivos para este tipo",
+          "duplicate": "Este archivo ya está adjunto",
+          "not_editable": "No tienes permiso para modificar los documentos de este negocio",
+          "not_found": "Negocio no encontrado",
+          "rate_limited": "Demasiados intentos. Espera un momento e inténtalo de nuevo",
+          "upload_failed": "No se pudo subir el archivo. Inténtalo de nuevo",
+          "open_failed": "No se pudo abrir el documento",
+          "delete_failed": "No se pudo eliminar el documento"
+        }
+      },
       "editDeal": "Editar negocio",
       "newDeal": "Nuevo negocio",
       "title": "Título",

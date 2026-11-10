@@ -140,15 +140,21 @@ export default function PipelinesPage() {
 
   const filteredDeals = useMemo(() => {
     const q = normalize(searchQuery.trim());
+
+    // Rango en HORA LOCAL: `${fecha}T00:00:00` sin zona se interpreta como local.
+    const from = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
+    const to = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
+
     return deals.filter((d) => {
       if (statusFilter !== "all" && d.status !== statusFilter) return false;
       if (agentFilter !== "all" && d.assigned_to !== agentFilter) return false;
-      if (dateFrom && d.created_at < dateFrom) return false;
-      if (dateTo && d.created_at > `${dateTo}T23:59:59`) return false;
+      const createdAt = new Date(d.created_at).getTime();
+      if (from !== null && createdAt < from) return false;
+      if (to !== null && createdAt > to) return false;
       if (q) {
         const contact = (d as any).contact;
         const haystack = normalize(
-          [contact?.name, contact?.phone, contact?.identificacion, d.producto_nombre, d.orden_de_venta]
+          [contact?.name, contact?.nombre_completo, contact?.phone, contact?.identificacion, d.producto_nombre, d.orden_de_venta]
             .filter(Boolean)
             .join(" "),
         );
@@ -514,6 +520,7 @@ export default function PipelinesPage() {
               <Input
                 type="date"
                 value={dateFrom}
+                max={dateTo || undefined}
                 onChange={(e) => setDateFrom(e.target.value)}
                 className="h-9 w-[150px] border-border bg-muted text-foreground"
               />
@@ -521,6 +528,7 @@ export default function PipelinesPage() {
               <Input
                 type="date"
                 value={dateTo}
+                min={dateFrom || undefined}
                 onChange={(e) => setDateTo(e.target.value)}
                 className="h-9 w-[150px] border-border bg-muted text-foreground"
               />

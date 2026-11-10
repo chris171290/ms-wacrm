@@ -86,10 +86,10 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
         <span className="text-sm font-bold text-primary">
           {formatCurrency(deal.value, deal.currency)}
         </span>
-        {deal.expected_close_date && (
+        {deal.created_at && (
           <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <Calendar className="h-3 w-3" />
-            {formatDate(deal.expected_close_date)}
+            {formatDate(deal.created_at)}
           </span>
         )}
       </div>
