@@ -4,6 +4,17 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Pipeline, PipelineStage, Deal } from "@/types";
 import { PipelineBoard } from "@/components/pipelines/pipeline-board";
+import { PipelineTable } from "@/components/pipelines/pipeline-table";
+import {
+  PipelineViewToolbar,
+  type PipelineView,
+} from "@/components/pipelines/pipeline-view-toolbar";
+import {
+  DEALS_CSV_COLUMNS,
+  buildDealsCsv,
+  buildDealsCsvFilename,
+  type DealsCsvColumnId,
+} from "@/lib/pipelines/export-deals-csv";
 import { PipelineSettings } from "@/components/pipelines/pipeline-settings";
 import { DealForm } from "@/components/pipelines/deal-form";
 import { PipelineAnalytics } from "@/components/pipelines/pipeline-analytics";
@@ -45,8 +56,11 @@ const SPEC_DEFAULT_STAGES = [
   { name: "Won", color: "#22c55e", position: 4 }, // green
 ];
 
+const VIEW_STORAGE_KEY = "majois:pipelines:view";
+
 export default function PipelinesPage() {
   const t = useTranslations("Pipelines.page");
+  const tTable = useTranslations("Pipelines.table");
   const supabase = createClient();
   const canEditSettings = useCan("edit-settings");
   const canCreateDeals = useCan("send-messages");
@@ -59,6 +73,25 @@ export default function PipelinesPage() {
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Vista (kanban/tabla) recordada por navegador. Leer localStorage aquí no
+  // causa desajuste de hidratación: el primer render es el skeleton de carga.
+  const [view, setView] = useState<PipelineView>(() => {
+    try {
+      return localStorage.getItem(VIEW_STORAGE_KEY) === "table" ? "table" : "kanban";
+    } catch {
+      return "kanban";
+    }
+  });
+
+  function changeView(next: PipelineView) {
+    setView(next);
+    try {
+      localStorage.setItem(VIEW_STORAGE_KEY, next);
+    } catch {
+      /* modo privado o storage bloqueado: la vista simplemente no se recuerda */
+    }
+  }
 
   // Dialog / sheet state
   const [newPipelineOpen, setNewPipelineOpen] = useState(false);
@@ -110,12 +143,21 @@ export default function PipelinesPage() {
 
   const loadDeals = useCallback(
     async (pipelineId: string) => {
-      const { data } = await supabase
-        .from("deals")
-        .select("*, contact:contacts(*), assignee:profiles!deals_assigned_to_fkey(*)")
-        .eq("pipeline_id", pipelineId)
-        .order("created_at", { ascending: false });
-      return (data ?? []) as Deal[];
+      const PAGE = 1000;
+      const all: Deal[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("deals")
+          .select("*, contact:contacts(*), assignee:profiles!deals_assigned_to_fkey(*)")
+          .eq("pipeline_id", pipelineId)
+          .order("created_at", { ascending: false })
+          .order("id") // desempate estable entre páginas
+          .range(from, from + PAGE - 1);
+        if (error || !data) break;
+        all.push(...(data as Deal[]));
+        if (data.length < PAGE) break;
+      }
+      return all;
     },
     [supabase],
   );
@@ -363,6 +405,39 @@ export default function PipelinesPage() {
 
   const selectedPipeline = pipelines.find((p) => p.id === selectedPipelineId);
 
+    function handleExportCsv() {
+    try {
+      const headers = Object.fromEntries(
+        DEALS_CSV_COLUMNS.map((id) => [id, tTable(`columns.${id}` as string)]),
+      ) as Record<DealsCsvColumnId, string>;
+
+      const csv = buildDealsCsv(filteredDeals, stages, {
+        headers,
+        status: {
+          open: tTable("status.open"),
+          won: tTable("status.won"),
+          lost: tTable("status.lost"),
+        },
+      });
+
+      // El BOM (\uFEFF) hace que Excel abra el archivo en UTF-8 y respete las tildes.
+      const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = buildDealsCsvFilename(selectedPipeline?.name);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+      toast.success(t("exportDone", { count: filteredDeals.length }));
+    } catch (err) {
+      console.error("[pipelines] CSV export failed:", err);
+      toast.error(t("exportFailed"));
+    }
+  }
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -433,6 +508,7 @@ export default function PipelinesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          
           <GatedButton
             variant="outline"
             canAct={canEditSettings}
@@ -546,13 +622,28 @@ export default function PipelinesPage() {
             )}
           </div>
           <PipelineAnalytics stages={stages} deals={filteredDeals} />
-          <PipelineBoard
-            stages={stages}
-            deals={filteredDeals}
-            onDealMoved={handleDealMoved}
-            onAddDeal={handleAddDeal}
-            onEditDeal={handleEditDeal}
-          />
+          <PipelineViewToolbar
+            view={view}
+            onViewChange={changeView}
+            onExport={handleExportCsv}
+            exportDisabled={filteredDeals.length === 0}
+            totalCount={filteredDeals.length}
+          />          
+          {view === "kanban" ? (
+            <PipelineBoard
+              stages={stages}
+              deals={filteredDeals}
+              onDealMoved={handleDealMoved}
+              onAddDeal={handleAddDeal}
+              onEditDeal={handleEditDeal}
+            />
+          ) : (
+            <PipelineTable
+              stages={stages}
+              deals={filteredDeals}
+              onEditDeal={handleEditDeal}
+            />
+          )}
         </>
       )}
 

@@ -553,6 +553,33 @@
     }
   },
   "Pipelines": {
+    "table": {
+      "columns": {
+        "client": "Cliente",
+        "identification": "Identificación",
+        "product": "Producto",
+        "value": "Valor",
+        "stage": "Etapa",
+        "status": "Estado",
+        "assignee": "Asignado a",
+        "saleType": "Tipo de venta",
+        "carrier": "Operadora",
+        "salesOrder": "Orden de venta",
+        "activationDate": "Fecha de alta",
+        "createdAt": "Creado",
+        "currency": "Moneda"
+      },
+      "status": {
+        "open": "Abierto",
+        "won": "Ganado",
+        "lost": "Perdido"
+      },
+      "empty": "No hay negocios que coincidan con los filtros",
+      "showing": "{from}–{to} de {total}",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "sortBy": "Ordenar por {column}"
+    },
     "page": {
       "selectPipeline": "Seleccionar embudo",
       "noPipelinesYet": "Aún no hay embudos",
@@ -581,7 +608,14 @@
       "filterAllAgents": "Todos los agentes",
       "dateFromLabel": "Desde",
       "dateToLabel": "Hasta",
-      "clearFilters": "Limpiar filtros"    
+      "clearFilters": "Limpiar filtros",
+      "viewSwitcher": "Tipo de vista",
+      "viewKanban": "Tablero",
+      "viewTable": "Tabla",
+      "exportCsv": "Exportar CSV",
+      "exportDone": "Se exportaron {count} negocios",
+      "exportFailed": "No se pudo generar el archivo CSV",
+      "resultsCount": "{count, plural, one {# negocio} other {# negocios}}"    
     },
     "board": {
       "dropDealHere": "Suelta un negocio aquí",
