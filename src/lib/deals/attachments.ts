@@ -1,6 +1,6 @@
 import { sanitizeFilename } from "@/lib/media/filename";
 
-export const DEAL_DOCUMENT_TYPES = ["cedula", "comprobante_transferencia"] as const;
+export const DEAL_DOCUMENT_TYPES = ["cedula", "comprobante_transferencia", "papeleta_votacion","otros"] as const;
 export type DealDocumentType = (typeof DEAL_DOCUMENT_TYPES)[number];
 
 export const ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;

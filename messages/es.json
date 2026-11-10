@@ -600,7 +600,9 @@
         "hint": "JPG, PNG, WebP o PDF · máximo 8 MB por archivo",
         "types": {
           "cedula": "Cédula",
-          "comprobante_transferencia": "Comprobante de transferencia"
+          "comprobante_transferencia": "Comprobante de transferencia",
+          "papeleta_votacion": "Papeleta de Votación",
+          "otros": "Otros"
         },
         "pending": "Pendientes (se suben al guardar el negocio)",
         "view": "Ver",
