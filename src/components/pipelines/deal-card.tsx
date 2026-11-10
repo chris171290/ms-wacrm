@@ -82,6 +82,13 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
         </span>
       </div>
 
+      {deal.orden_de_venta && (
+        <div className="mt-1.5 flex items-center gap-1 text-[11px] text-muted-foreground">
+          <span>{t("ordenDeVenta")}:</span>
+          <span className="font-medium text-foreground">{deal.orden_de_venta}</span>
+        </div>
+      )}      
+
       <div className="mt-2 flex items-center justify-between">
         <span className="text-sm font-bold text-primary">
           {formatCurrency(deal.value, deal.currency)}
