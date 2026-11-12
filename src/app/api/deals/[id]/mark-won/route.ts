@@ -32,7 +32,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (!deal.stage_id) missing.push("etapa");
     if (!deal.assigned_to) missing.push("asignado_a");
     if (!deal.direccion_completa) missing.push("direccion_completa");
-    if (!deal.google_maps_link) missing.push("google_maps_link");
     if (!deal.forma_de_pago) missing.push("forma_de_pago");
     if (!deal.orden_de_venta) missing.push("orden_de_venta");
     if (!deal.fecha_alta) missing.push("fecha_alta");
@@ -85,9 +84,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         phone: deal.contact.phone,
         email: deal.contact.email,
         mesh: deal.mesh,
-        formaDePago: deal.forma_de_pago,
         direccionCompleta: deal.direccion_completa,
-        googleMapsLink: deal.google_maps_link,
+        googleMapsLink: deal.google_maps_link
       });
 
       opportunity = await createTwentyOpportunity({
@@ -105,7 +103,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         ownerId: owner.id,
         tipoDeVenta: deal.tipo_de_venta,
         operadora: deal.operadora,
-        fechaAlta: deal.fecha_alta
+        fechaAlta: deal.fecha_alta,
+        ci: deal.contact?.identificacion
       });
     } catch (err) {
       console.error("[deals/mark-won] Twenty sync failed:", err);

@@ -424,7 +424,7 @@ export function DealForm({
       if (!stageId) missing.push(t("stage"));
       if (!assignedTo) missing.push(t("assignedTo"));
       if (!direccionCompleta) missing.push(t("direccionCompleta"));
-      if (!googleMapsLink) missing.push(t("googleMapsLink"));
+      //if (!googleMapsLink) missing.push(t("googleMapsLink"));
       if (!formaDePago) missing.push(t("formaDePago"));
       if (!ordenDeVenta) missing.push(t("ordenDeVenta"));
       if (!fechaAlta) missing.push(t("fechaAlta"));
@@ -565,7 +565,8 @@ export function DealForm({
               />
             </div> */}
             {isLocked && (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              // <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+              <div className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-900 dark-mode:border-amber-500/30 dark-mode:text-amber-300">
                 <div className="flex items-center justify-between gap-2">
                   <span>{t("lockedBanner")}</span>
                   {canUnlock && (
@@ -573,7 +574,8 @@ export function DealForm({
                       type="button"
                       onClick={handleUnlock}
                       disabled={unlocking}
-                      className="shrink-0 rounded bg-amber-500/20 px-2 py-1 font-medium text-amber-200 hover:bg-amber-500/30 disabled:opacity-50"
+                      // className="shrink-0 rounded bg-amber-500/20 px-2 py-1 font-medium text-amber-200 hover:bg-amber-500/30 disabled:opacity-50"
+                      className="shrink-0 rounded bg-amber-500/25 px-2 py-1 font-medium text-amber-900 hover:bg-amber-500/40 disabled:opacity-50 dark-mode:bg-amber-500/20 dark-mode:text-amber-200 dark-mode:hover:bg-amber-500/30"
                     >
                       {unlocking ? t("unlocking") : t("unlockDeal")}
                     </button>
@@ -584,7 +586,7 @@ export function DealForm({
                     href={`https://ecufonemire.majoissolutions.com/object/opportunity/${deal.twenty_opportunity_id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="mt-1.5 inline-flex items-center gap-1 text-amber-200/80 hover:text-amber-100"
+                    className="mt-1.5 inline-flex items-center gap-1 font-medium text-amber-800 underline-offset-2 hover:underline dark-mode:text-amber-200/80 dark-mode:hover:text-amber-100"
                   >
                     <ExternalLink className="h-3 w-3" />
                     {t("viewInTwenty")}

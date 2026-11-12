@@ -43,18 +43,34 @@ function splitName(fullName: string) {
 // nacional, no como un solo string. Si no se puede parsear de forma
 // confiable, es más seguro mandarlo vacío que mandar algo inválido
 // y tumbar la creación del cliente.
+const EMPTY_PHONE = { number: "", countryCode: "", callingCode: "" };
+
 function parsePhone(phone: string | null | undefined) {
   const digits = (phone ?? "").replace(/\D/g, "");
-  if (!digits) return { number: "", countryCode: "", callingCode: "" };
+  if (!digits) return EMPTY_PHONE;
 
-  const parsed = parsePhoneNumberFromString(`+${digits}`);
-  if (!parsed || !parsed.isValid()) {
-    return { number: "", countryCode: "", callingCode: "" };
+  // Acepta los dos formatos que existen en los contactos:
+  //  - internacional sin "+": 593992273539 (WhatsApp)
+  //  - nacional ecuatoriano: 0992273539 o 992273539 (captura manual)
+  // Si es corto (hasta 10 dígitos) casi seguro es nacional, así que se
+  // prueba primero con Ecuador para no confundir 992273539 con un
+  // número de otro país.
+  const candidates =
+    digits.length <= 10
+      ? [parsePhoneNumberFromString(digits, "EC"), parsePhoneNumberFromString(`+${digits}`)]
+      : [parsePhoneNumberFromString(`+${digits}`), parsePhoneNumberFromString(digits, "EC")];
+
+  const parsed = candidates.find((p) => p?.isValid());
+  if (!parsed) {
+    // Se envía vacío (Twenty rechaza con 400 los teléfonos inválidos),
+    // pero ahora queda registro para poder corregir el contacto.
+    console.warn(`[twenty] teléfono no válido, se envía vacío: "${phone}"`);
+    return EMPTY_PHONE;
   }
   return {
-    number: parsed.nationalNumber,
-    countryCode: parsed.country ?? "",
-    callingCode: `+${parsed.countryCallingCode}`,
+    number: parsed.nationalNumber,          // "992273539"
+    countryCode: parsed.country ?? "",      // "EC"
+    callingCode: `+${parsed.countryCallingCode}`, // "+593"
   };
 }
 
@@ -115,8 +131,9 @@ export async function createTwentyPerson(input: CreatePersonInput) {
       additionalPhones: [],
     },
     mesh: input.mesh ?? null,
-    formaDePago: mapFormaDePago(input.formaDePago),
-    direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
+    direccionDeCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
+    cargaMasiva: false,
+    estado: "CLIENTE_ACTIVO"
   };
 
   const res = await fetch(`${TWENTY_BASE_URL}/rest/people`, {
@@ -157,6 +174,7 @@ export interface CreateOpportunityInput {
   tipoDeVenta: string;
   operadora: string;
   fechaAlta: string;
+  ci: string;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -208,6 +226,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     fechaAltaEInstalacion: input.fechaAlta ?? null,
     tipoDeVenta,
     operadora,
+    ci: input.ci,
     equipo: "CALL_CENTER_NORTE",
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
   };
