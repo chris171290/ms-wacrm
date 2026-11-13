@@ -442,8 +442,12 @@ export interface Deal {
   twenty_opportunity_id?: string | null;
 }
 
-export type TipoVenta = 'Línea Nueva' | 'Portabilidad Prepago' | 'Migración';
-export type Operadora = 'Claro' | 'Movistar' | 'CNT' | 'Tuenti';
+export type TipoVenta =
+  | 'Línea Nueva'
+  | 'Portabilidad Prepago'
+  | 'Portabilidad Pospago'
+  | 'Migración';
+export type Operadora = 'Claro' | 'Movistar' | 'CNT' | 'Tuenti' | 'Tigo';
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'failed';
 export type RecipientStatus = 'pending' | 'sent' | 'delivered' | 'read' | 'replied' | 'failed';

@@ -327,7 +327,7 @@
       "customFieldsBtn": "Campos personalizados",
       "importBtn": "Importar",
       "addContactBtn": "Agregar contacto",
-      "searchPlaceholder": "Buscar por nombre, teléfono o correo...",
+      "searchPlaceholder": "Buscar por nombre, cédula, teléfono o correo...",
       "filterByTags": "Filtrar por etiquetas",
       "clearAll": "Borrar todo",
       "noTagsYet": "Aún no hay etiquetas.",
@@ -340,7 +340,9 @@
         "email": "Correo",
         "company": "Empresa",
         "tags": "Etiquetas",
-        "createdAt": "Creado"
+        "createdAt": "Creado",
+        "nombreCompleto": "Nombre completo",
+        "identificacion": "Identificación"
       },
       "loading": "Cargando contactos...",
       "noContactsMatch": "Ningún contacto coincide con tus filtros.",

@@ -261,6 +261,7 @@ function todayInEcuador(): string {
 const TIPO_VENTA_TO_TWENTY: Record<string, string> = {
   "Línea Nueva": "LINEA_NUEVA",
   "Portabilidad Prepago": "PORTABILIDAD_PREPAGO",
+  "Portabilidad Pospago": "PORTABILIDAD_POSPAGO",
   "Migración": "MIGRACION",
 };
 
@@ -269,14 +270,19 @@ const OPERADORA_TO_TWENTY: Record<string, string> = {
   "Movistar": "MOVISTAR",
   "CNT": "CNT",
   "Tuenti": "TUENTI",
+  "Tigo": "TIGO",
 };
 
 export function mapTipoVenta(value: string | null | undefined) {
   if (!value) return null;
-  return TIPO_VENTA_TO_TWENTY[value] ?? null;
+  const mapped = TIPO_VENTA_TO_TWENTY[value];
+  if (!mapped) throw new Error(`Twenty: tipo de venta sin mapeo: "${value}"`);
+  return mapped;
 }
 
 export function mapOperadora(value: string | null | undefined) {
   if (!value) return null;
-  return OPERADORA_TO_TWENTY[value] ?? null;
+  const mapped = OPERADORA_TO_TWENTY[value];
+  if (!mapped) throw new Error(`Twenty: operadora sin mapeo: "${value}"`);
+  return mapped;
 }
