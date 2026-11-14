@@ -104,6 +104,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         tipoDeVenta: deal.tipo_de_venta,
         operadora: deal.operadora,
         fechaAlta: deal.fecha_alta,
+        celularAsignado: deal.celular_asignado,
         ci: deal.contact?.identificacion
       });
     } catch (err) {

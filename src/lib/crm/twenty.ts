@@ -175,6 +175,7 @@ export interface CreateOpportunityInput {
   operadora: string;
   fechaAlta: string;
   ci: string;
+  celularAsignado?: string | null;
 }
 
 function meshToTwentyText(mesh: boolean | null | undefined): "SI" | "NO" | null {
@@ -226,6 +227,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     fechaAltaEInstalacion: input.fechaAlta ?? null,
     tipoDeVenta,
     operadora,
+    celularAsignado: input.celularAsignado?.trim() || null,
     ci: input.ci,
     equipo: "CALL_CENTER_NORTE",
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
