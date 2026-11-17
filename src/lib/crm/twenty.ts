@@ -231,6 +231,7 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     ci: input.ci,
     equipo: "CALL_CENTER_NORTE",
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
+    cargaMasiva: false
   };
 
   const res = await fetch(`${TWENTY_BASE_URL}/rest/opportunities`, {
@@ -287,4 +288,32 @@ export function mapOperadora(value: string | null | undefined) {
   const mapped = OPERADORA_TO_TWENTY[value];
   if (!mapped) throw new Error(`Twenty: operadora sin mapeo: "${value}"`);
   return mapped;
+}
+
+// Busca en Twenty el anuncio por su id de Meta (source_id del referral) y
+// devuelve la campaña relacionada. depth=1 hace que Twenty anide la campaña
+// dentro del anuncio.
+export async function findTwentyCampanaByAdId(
+  sourceId: string,
+): Promise<{ id: string; name: string } | null> {
+  // Los ids de anuncios de Meta son numéricos. Cualquier otra cosa se
+  // descarta para no meter texto arbitrario dentro del filtro.
+  if (!/^\d+$/.test(sourceId)) return null;
+
+  const filter = `metaId[eq]:"${sourceId}"`;
+  const url = `${TWENTY_BASE_URL}/rest/anuncios?filter=${encodeURIComponent(filter)}&depth=1`;
+
+  const res = await fetch(url, {
+    method: "GET",
+    headers: authHeaders(),
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!res.ok) {
+    throw new Error(`Twenty: error al buscar anuncio (${res.status}): ${await res.text().catch(() => "")}`);
+  }
+
+  const json = await res.json();
+  const campana = json?.data?.anuncios?.[0]?.campana;
+  if (!campana?.id) return null;
+  return { id: campana.id, name: String(campana.name ?? "").trim() };
 }
