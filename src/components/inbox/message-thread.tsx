@@ -218,6 +218,7 @@ export function MessageThread({
       .from("profiles")
       .select("*")
       .order("full_name")
+      .eq('account_role','agent')
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) {
