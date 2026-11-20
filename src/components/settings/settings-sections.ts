@@ -39,7 +39,7 @@ export type SettingsSection = (typeof SETTINGS_SECTIONS)[number];
 
 export const DEFAULT_SECTION: SettingsSection = 'overview';
 
-/** Rail grouping. `adminOnly` items are hidden for non-admins. */
+/** Rail grouping. Workspace items are hidden unless the role is owner. */
 export interface SectionMeta {
   id: SettingsSection;
   label: string;

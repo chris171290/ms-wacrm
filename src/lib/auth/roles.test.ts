@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ACCOUNT_ROLES,
   type AccountRole,
+  canAccessWorkspaceSettings,
   canDeleteAccount,
   canEditSettings,
   canManageMembers,
@@ -98,6 +99,13 @@ describe("capability predicates", () => {
     expect(canEditSettings("admin")).toBe(true);
     expect(canEditSettings("agent")).toBe(false);
     expect(canEditSettings("viewer")).toBe(false);
+  });
+
+  it("canAccessWorkspaceSettings: owner only", () => {
+    expect(canAccessWorkspaceSettings("owner")).toBe(true);
+    expect(canAccessWorkspaceSettings("admin")).toBe(false);
+    expect(canAccessWorkspaceSettings("agent")).toBe(false);
+    expect(canAccessWorkspaceSettings("viewer")).toBe(false);
   });
 
   it("canSendMessages: agent+ only", () => {

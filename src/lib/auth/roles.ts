@@ -80,6 +80,11 @@ export function canEditSettings(role: AccountRole): boolean {
   return hasMinRole(role, "admin");
 }
 
+/** Owner only: account workspace settings section. */
+export function canAccessWorkspaceSettings(role: AccountRole): boolean {
+  return role === "owner";
+}
+
 /**
  * Owner / admin / agent: write operational data — send messages,
  * create contacts, move deals, run broadcasts, edit automations.

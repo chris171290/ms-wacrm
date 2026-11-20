@@ -39,7 +39,7 @@ export function SettingsOverview({
 }) {
   const { user, profile, accountId, accountRole, defaultCurrency, canManageMembers } =
     useAuth();
-  const canAccessWorkspace = useCan('edit-settings');
+  const canAccessWorkspace = useCan('access-workspace-settings');
   const { mode, theme } = useTheme();
   const t = useTranslations('Settings.overview');
   const tRoles = useTranslations('Settings.roles');

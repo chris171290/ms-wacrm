@@ -47,7 +47,7 @@ function SettingsPageInner() {
   const { defaultCurrency } = useAuth();
   const { mode } = useTheme();
   const t = useTranslations('Settings');
-  const canAccessWorkspace = useCan('edit-settings');
+  const canAccessWorkspace = useCan('access-workspace-settings');
 
   // The URL (`?tab=`) is the single source of truth for the active
   // section — deep-linkable, and it keeps the existing links in the
