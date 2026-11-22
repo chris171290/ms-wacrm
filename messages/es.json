@@ -756,7 +756,8 @@
       "toastContactIncomplete": "Completa los datos del contacto antes de crear el negocio",
       "contactIncompleteSelect": "No puedes seleccionar este contacto. Falta: {fields}",
       "contactMissingInline": "Falta: {fields}",
-      "identificacion": "Identificación"
+      "identificacion": "Identificación",
+      "toastOrdenDuplicada": "Esa orden de venta ya está registrada en otro negocio"
     },
     "settings": {
       "managePipeline": "Gestionar embudo",

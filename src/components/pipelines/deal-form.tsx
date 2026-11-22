@@ -364,7 +364,7 @@ export function DealForm({
         .update(payload)
         .eq("id", deal.id);
       if (error) {
-        toast.error(t("toastFailedSave"));
+        toast.error(error.code === "23505" ? t("toastOrdenDuplicada") : t("toastFailedSave"));
         setSaving(false);
         return;
       }
@@ -389,7 +389,7 @@ export function DealForm({
         .select("id")
         .single();
       if (error || !created) {
-        toast.error(t("toastFailedCreate"));
+        toast.error(error?.code === "23505" ? t("toastOrdenDuplicada") : t("toastFailedCreate"));
         setSaving(false);
         return;
       }
@@ -475,7 +475,7 @@ export function DealForm({
         .eq("id", deal.id);
 
       if (saveError) {
-        toast.error(t("toastFailedSave"));
+        toast.error(saveError.code === "23505" ? t("toastOrdenDuplicada") : t("toastFailedSave"));
         setStatusAction(null);
         return;
       }
