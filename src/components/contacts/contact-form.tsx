@@ -241,6 +241,7 @@ export function ContactForm({
             user_id: user.id,
             account_id: accountId,
             name: name.trim() || null,
+            nombre_completo: nombreCompleto.trim() || null,
             phone: phone.trim(),
             identificacion: identificacion.trim(),
             campana_id: campanaId || null,
