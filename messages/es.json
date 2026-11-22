@@ -334,6 +334,8 @@
       "selectedCount": "{count} seleccionados",
       "clearSelection": "Borrar",
       "deleteSelected": "Eliminar seleccionados",
+      "toastContactHasDeals": "No se puede eliminar el contacto porque tiene ventas relacionadas",
+      "toastBulkPartial": "{deleted} contactos eliminados. {blocked} no se eliminaron porque tienen ventas relacionadas",      
       "tableColumns": {
         "name": "Nombre",
         "phone": "Teléfono",

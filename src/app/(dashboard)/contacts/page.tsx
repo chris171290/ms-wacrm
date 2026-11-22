@@ -262,7 +262,9 @@ export default function ContactsPage() {
       .eq('id', deleteTarget.id);
 
     if (error) {
-      toast.error(t('toastFailedDelete'));
+      toast.error(
+        error.code === '23503' ? t('toastContactHasDeals') : t('toastFailedDelete'),
+      );
     } else {
       toast.success(t('toastDeleted'));
       fetchContacts();
@@ -303,15 +305,26 @@ export default function ContactsPage() {
     if (ids.length === 0) return;
     setDeleting(true);
 
-    const { error } = await supabase.from('contacts').delete().in('id', ids);
+    const results = await Promise.all(
+      ids.map(async (id) => ({
+        id,
+        error: (await supabase.from('contacts').delete().eq('id', id)).error,
+      })),
+    );
+    const blocked = results.filter((r) => r.error?.code === '23503').length;
+    const failed = results.filter((r) => r.error && r.error.code !== '23503').length;
+    const deleted = results.length - blocked - failed;
 
-    if (error) {
-      toast.error(t('toastBulkFailedDelete'));
+    if (deleted > 0 && blocked === 0 && failed === 0) {
+      toast.success(t('toastBulkDeleted', { count: deleted }));
+    } else if (deleted > 0) {
+      toast.warning(t('toastBulkPartial', { deleted, blocked: blocked + failed }));
     } else {
-      toast.success(t('toastBulkDeleted', { count: ids.length }));
-      setSelected(new Set());
-      fetchContacts();
+      toast.error(blocked > 0 ? t('toastContactHasDeals') : t('toastBulkFailedDelete'));
     }
+
+    setSelected(new Set());
+    fetchContacts();
 
     setDeleting(false);
     setBulkDeleteOpen(false);
