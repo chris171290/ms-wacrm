@@ -108,7 +108,7 @@ export async function findTwentyPersonByCi(ci: string): Promise<{ id: string } |
 
   const res = await fetch(url, { method: "GET", headers: authHeaders() });
   if (!res.ok) {
-    throw new Error(`Twenty: error al buscar persona (${res.status}): ${await res.text().catch(() => "")}`);
+    throw new Error(`Majois CRM: error al buscar persona (${res.status}): ${await res.text().catch(() => "")}`);
   }
 
   const json = await res.json();
@@ -142,11 +142,11 @@ export async function createTwentyPerson(input: CreatePersonInput) {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`Twenty: error al crear persona (${res.status}): ${await res.text().catch(() => "")}`);
+    throw new Error(`Majois CRM: error al crear persona (${res.status}): ${await res.text().catch(() => "")}`);
   }
   const json = await res.json();
   const person = json?.data?.createPerson ?? json;
-  if (!person?.id) throw new Error("Twenty: persona creada sin id en la respuesta");
+  if (!person?.id) throw new Error("Majois CRM: persona creada sin id en la respuesta");
   return person as { id: string };
 }
 
@@ -189,7 +189,7 @@ export async function findTwentyWorkspaceMemberByEmail(email: string): Promise<{
 
   const res = await fetch(url, { method: "GET", headers: authHeaders() });
   if (!res.ok) {
-    throw new Error(`Twenty: error al buscar workspaceMember (${res.status}): ${await res.text().catch(() => "")}`);
+    throw new Error(`Majois CRM: error al buscar el usuario del espacio de trabajo (${res.status}): ${await res.text().catch(() => "")}`);
   }
 
   const json = await res.json();
@@ -198,7 +198,8 @@ export async function findTwentyWorkspaceMemberByEmail(email: string): Promise<{
 }
 
 
-export async function createTwentyOpportunity(input: CreateOpportunityInput) {
+/** Campos de la venta que viajan a Twenty, tanto al crear como al actualizar. */
+function buildOpportunityFields(input: CreateOpportunityInput) {
   const formaDePago = mapFormaDePago(input.formaDePago);
   const tipoDeVenta = mapTipoVenta(input.tipoDeVenta);
   const operadora = mapOperadora(input.operadora);
@@ -209,16 +210,16 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     !operadora && `operadora "${input.operadora}"`,
   ].filter(Boolean);
   if (unmapped.length > 0) {
-    throw new Error(`Twenty: valores sin mapeo: ${unmapped.join(", ")}`);
+    throw new Error(`Majois CRM: valores sin mapeo: ${unmapped.join(", ")}`);
   }
 
-  const body = {
+  return {
     name: input.contactName,
     nombreDelContacto: input.contactName,
     pointOfContactId: input.pointOfContactId,
     productoId: input.productoId,
     amount: { amountMicros: Math.round(input.amount * 1_000_000), currencyCode: input.currency },
-    formaDePago: formaDePago,
+    formaDePago,
     icc: { blocknote: null, markdown: input.icc ?? "" },
     mesh: meshToTwentyText(input.mesh),
     direccionCliente: buildDireccionCliente(input.direccionCompleta, input.googleMapsLink),
@@ -229,9 +230,16 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     operadora,
     celularAsignado: input.celularAsignado?.trim() || null,
     ci: input.ci,
+  };
+}
+
+export async function createTwentyOpportunity(input: CreateOpportunityInput) {
+  const body = {
+    ...buildOpportunityFields(input),
+    // Solo al CREAR: después de la integración, estos campos los maneja Twenty.
     equipo: "CALL_CENTER_NORTE",
     stage: "FINALIZADO", // TODO: confirmar que este es el stage correcto para "ganado"
-    cargaMasiva: false
+    cargaMasiva: false,
   };
 
   const res = await fetch(`${TWENTY_BASE_URL}/rest/opportunities`, {
@@ -240,12 +248,38 @@ export async function createTwentyOpportunity(input: CreateOpportunityInput) {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    throw new Error(`Twenty: error al crear oportunidad (${res.status}): ${await res.text().catch(() => "")}`);
+    throw new Error(`Majois CRM: error al crear oportunidad (${res.status}): ${await res.text().catch(() => "")}`);
   }
   const json = await res.json();
   const opportunity = json?.data?.createOpportunity ?? json;
-  if (!opportunity?.id) throw new Error("Twenty: oportunidad creada sin id en la respuesta");
+  if (!opportunity?.id) throw new Error("Majois CRM: oportunidad creada sin id en la respuesta");
   return opportunity as { id: string };
+}
+
+/**
+ * Re-sincroniza una oportunidad que ya existe (deal desbloqueado y vuelto a
+ * marcar como ganado). Devuelve null si Twenty ya no la tiene (404), para que
+ * el llamador la cree de nuevo.
+ *
+ * No envía `stage`, `equipo` ni `cargaMasiva`: tras la integración el
+ * seguimiento ocurre en Twenty y no debe pisarse.
+ */
+export async function updateTwentyOpportunity(
+  id: string,
+  input: CreateOpportunityInput,
+): Promise<{ id: string } | null> {
+  const res = await fetch(`${TWENTY_BASE_URL}/rest/opportunities/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify(buildOpportunityFields(input)),
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`Majois CRM: error al actualizar oportunidad (${res.status}): ${await res.text().catch(() => "")}`);
+  }
+  const json = await res.json().catch(() => ({}));
+  const opportunity = json?.data?.updateOpportunity ?? json;
+  return { id: (opportunity?.id as string | undefined) ?? id };
 }
 
 function todayInEcuador(): string {
@@ -279,14 +313,14 @@ const OPERADORA_TO_TWENTY: Record<string, string> = {
 export function mapTipoVenta(value: string | null | undefined) {
   if (!value) return null;
   const mapped = TIPO_VENTA_TO_TWENTY[value];
-  if (!mapped) throw new Error(`Twenty: tipo de venta sin mapeo: "${value}"`);
+  if (!mapped) throw new Error(`Majois CRM: tipo de venta sin mapeo: "${value}"`);
   return mapped;
 }
 
 export function mapOperadora(value: string | null | undefined) {
   if (!value) return null;
   const mapped = OPERADORA_TO_TWENTY[value];
-  if (!mapped) throw new Error(`Twenty: operadora sin mapeo: "${value}"`);
+  if (!mapped) throw new Error(`Majois CRM: operadora sin mapeo: "${value}"`);
   return mapped;
 }
 
@@ -309,7 +343,7 @@ export async function findTwentyCampanaByAdId(
     signal: AbortSignal.timeout(4000),
   });
   if (!res.ok) {
-    throw new Error(`Twenty: error al buscar anuncio (${res.status}): ${await res.text().catch(() => "")}`);
+    throw new Error(`Majois CRM: error al buscar anuncio (${res.status}): ${await res.text().catch(() => "")}`);
   }
 
   const json = await res.json();
