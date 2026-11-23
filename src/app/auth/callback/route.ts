@@ -47,12 +47,12 @@ export async function GET(request: Request) {
 
   const upstreamError = parseSupabaseError(searchParams);
   if (upstreamError) {
-    return relativeRedirect(loginFailurePath(upstreamError));
+    return relativeRedirect(loginFailurePath(upstreamError, next));
   }
 
   const link = parseEmailLink(searchParams);
   if (!link) {
-    return relativeRedirect(loginFailurePath('link_invalid'));
+    return relativeRedirect(loginFailurePath('link_invalid', next));
   }
 
   const supabase = await createClient();
@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       kind: link.kind,
       message: error.message,
     });
-    return relativeRedirect(loginFailurePath('link_invalid'));
+    return relativeRedirect(loginFailurePath('link_invalid', next));
   }
 
   return relativeRedirect(next);

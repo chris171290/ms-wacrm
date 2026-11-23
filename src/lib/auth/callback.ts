@@ -116,8 +116,15 @@ export function parseSupabaseError(
   return errorCode === 'otp_expired' ? 'link_expired' : 'link_invalid';
 }
 
-export function loginFailurePath(reason: CallbackFailure): string {
-  return `${LOGIN_PATH}?error=${reason}`;
+export function loginFailurePath(
+  reason: CallbackFailure,
+  next?: string | null,
+): string {
+  const base = `${LOGIN_PATH}?error=${reason}`;
+  // Si el enlace venía de una invitación (/join/<token>), se conserva el
+  // token para que, tras iniciar sesión, el usuario llegue a aceptarla.
+  const invite = next?.match(/^\/join\/([^/?#]+)/)?.[1];
+  return invite ? `${base}&invite=${invite}` : base;
 }
 
 /**
