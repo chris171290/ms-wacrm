@@ -156,7 +156,10 @@
       "clearAll": "Borrar todo",
       "noConversations": "No se encontraron conversaciones",
       "noMessagesYet": "Aún no hay mensajes",
-      "unknown": "Desconocido"
+      "unknown": "Desconocido",
+      "assignee": "Asignado a",
+      "allAgents": "Todos los agentes",
+      "unassigned": "Sin asignar"
     },
     "messageThread": {
       "backToConversations": "Volver a conversaciones",
@@ -1945,4 +1948,4 @@
     "successDesc": "Has iniciado sesión con tu nueva contraseña.",
     "continueToDashboard": "Continuar al panel de control"
   }
-}
+} 
