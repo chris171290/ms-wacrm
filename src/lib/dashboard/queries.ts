@@ -2,8 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   daysAgoStart,
   DOW_SHORT_MON_FIRST,
-  lastNDayKeys,
-  localDayKey,
   mondayIndex,
   startOfLocalDay,
 } from './date-utils'
@@ -105,27 +103,22 @@ export async function loadConversationsSeries(
   db: DB,
   rangeDays: number,
 ): Promise<ConversationsSeriesPoint[]> {
-  const start = daysAgoStart(rangeDays - 1).toISOString()
-  const { data, error } = await db
-    .from('messages')
-    .select('created_at, sender_type')
-    .gte('created_at', start)
-    .order('created_at', { ascending: true })
+  // El conteo lo hace la base de datos: traer los mensajes y contarlos aquí
+  // se truncaba en 1000 filas y dejaba fuera los días más recientes.
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
+  const { data, error } = await db.rpc('conversations_series', {
+    p_days: rangeDays,
+    p_tz: tz,
+  })
   if (error) throw error
 
-  const keys = lastNDayKeys(rangeDays)
-  const buckets = new Map<string, { incoming: number; outgoing: number }>()
-  for (const k of keys) buckets.set(k, { incoming: 0, outgoing: 0 })
-
-  for (const row of (data ?? []) as { created_at: string; sender_type: string }[]) {
-    const key = localDayKey(row.created_at)
-    const bucket = buckets.get(key)
-    if (!bucket) continue
-    if (row.sender_type === 'customer') bucket.incoming += 1
-    else bucket.outgoing += 1 // agent + bot both count as outgoing
-  }
-
-  return keys.map((day) => ({ day, ...(buckets.get(day) ?? { incoming: 0, outgoing: 0 }) }))
+  return ((data ?? []) as { day: string; incoming: number; outgoing: number }[]).map(
+    (r) => ({
+      day: r.day,
+      incoming: Number(r.incoming),
+      outgoing: Number(r.outgoing),
+    }),
+  )
 }
 
 // --- 3. Pipeline donut -------------------------------------------------
