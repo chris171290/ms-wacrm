@@ -159,7 +159,7 @@ function LoginPageInner() {
             </Button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          {/* <p className="mt-6 text-center text-sm text-muted-foreground">
             {t('noAccount')}{" "}
             <Link
               href={
@@ -171,7 +171,7 @@ function LoginPageInner() {
             >
               {t('createAccount')}
             </Link>
-          </p>
+          </p> */}
         </CardContent>
       </Card>
     </div>
