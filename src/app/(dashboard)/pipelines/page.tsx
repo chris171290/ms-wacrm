@@ -621,7 +621,7 @@ export default function PipelinesPage() {
               </button>
             )}
           </div>
-          <PipelineAnalytics stages={stages} deals={filteredDeals} />
+          <PipelineAnalytics deals={filteredDeals} />
           <PipelineViewToolbar
             view={view}
             onViewChange={changeView}

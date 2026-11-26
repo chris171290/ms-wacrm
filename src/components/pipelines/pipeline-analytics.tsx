@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { Deal, PipelineStage } from "@/types";
+import type { Deal } from "@/types";
 import {
   DollarSign,
   TrendingUp,
@@ -22,53 +22,22 @@ import { formatCurrency } from "@/lib/currency";
 import { useTranslations } from "next-intl";
 
 interface PipelineAnalyticsProps {
-  stages: PipelineStage[];
   deals: Deal[];
 }
 
-/**
- * Weighted pipeline value: value × per-stage probability.
- * First stage ≈ 10%, stages interpolate up to 90% before the final stage,
- * final stage (Won) = 100%. Lost deals excluded.
- */
-function computeStageProbability(
-  stage: PipelineStage,
-  sortedStages: PipelineStage[],
-): number {
-  const n = sortedStages.length;
-  if (n <= 1) return 1;
-  const index = sortedStages.findIndex((s) => s.id === stage.id);
-  if (index < 0) return 0;
-  if (index === n - 1) return 1;
-  const slots = n - 1;
-  if (slots <= 1) return 0.1;
-  const t = index / (slots - 1);
-  return 0.1 + t * (0.9 - 0.1);
-}
-
-export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
+export function PipelineAnalytics({ deals }: PipelineAnalyticsProps) {
   const t = useTranslations("Pipelines.analytics");
   const { defaultCurrency } = useAuth();
-  const sortedStages = useMemo(
-    () => [...stages].sort((a, b) => a.position - b.position),
-    [stages],
-  );
 
   const stats = useMemo(() => {
     const active = deals.filter((d) => d.status !== "lost");
-    const openDeals = active.filter((d) => d.status !== "won");
 
     const totalCount = active.length;
     const totalValue = active.reduce((sum, d) => sum + Number(d.value || 0), 0);
     const avgValue = totalCount > 0 ? totalValue / totalCount : 0;
-
-    const stageById = new Map(sortedStages.map((s) => [s.id, s]));
-    const weightedValue = openDeals.reduce((sum, d) => {
-      const stage = stageById.get(d.stage_id);
-      if (!stage) return sum;
-      const prob = computeStageProbability(stage, sortedStages);
-      return sum + Number(d.value || 0) * prob;
-    }, 0);
+    const wonValue = deals
+      .filter((d) => d.status === "won")
+      .reduce((sum, d) => sum + Number(d.value || 0), 0);
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -87,11 +56,11 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
       totalCount,
       totalValue,
       avgValue,
-      weightedValue,
+      wonValue,
       wonThisMonth,
       lostThisMonth,
     };
-  }, [deals, sortedStages]);
+  }, [deals]);
 
   return (
     <TooltipProvider>
@@ -119,9 +88,9 @@ export function PipelineAnalytics({ stages, deals }: PipelineAnalyticsProps) {
         />
         <Metric
           icon={<TrendingUp className="h-4 w-4 text-purple-400" />}
-          label={t("weightedValue")}
-          value={formatCurrency(stats.weightedValue, defaultCurrency)}
-          tooltip={t("weightedValueTooltip")}
+          label={t("wonValue")}
+          value={formatCurrency(stats.wonValue, defaultCurrency)}
+          tooltip={t("wonValueTooltip")}
           t={t}
         />
         <Metric
