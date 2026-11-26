@@ -1,34 +1,35 @@
-export function validarIdentificacionEcuador(identificacion: string): boolean {
-  // 1. Validar formato básico (solo números de 10 o 13 dígitos)
-  if (!/^[0-9]{10}$|^[0-9]{13}$/.test(identificacion)) {
-    return false;
+export function validarIdentificacionEcuador(input: string): boolean {
+  const id = input.trim();
+
+  if (!/^(\d{10}|\d{13})$/.test(id)) return false;
+
+  const provincia = parseInt(id.substring(0, 2), 10);
+  if ((provincia < 1 || provincia > 24) && provincia !== 30) return false;
+
+  const tercer = parseInt(id[2], 10);
+
+  if (id.length === 10) {
+    return tercer <= 6 && validarModulo10(id);
   }
-  // 2. Validar código de provincia (primeros dos dígitos entre 01 y 24, o 30 para extranjeros)
-  const provincia = parseInt(identificacion.substring(0, 2), 10);
-  if ((provincia < 1 || provincia > 24) && provincia !== 30) {
-    return false;
+
+  // RUC (13 dígitos)
+  const estab3 = id.substring(10, 13); // persona natural y sociedad privada
+  const estab4 = id.substring(9, 13);  // institución pública
+
+  if (tercer < 6) {
+    return estab3 !== '000' && validarModulo10(id.substring(0, 10));
   }
-  const tercerDigito = parseInt(identificacion.charAt(2), 10);
-  // 3. Si es RUC (13 dígitos), validar que termine en los códigos de establecimiento correctos
-  if (identificacion.length === 13) {
-    const establecimiento = identificacion.substring(10, 13);
-    if (establecimiento === '000') {
-      return false; // Debe terminar en 001, 002, etc.
-    }
+  if (tercer === 6) {
+    const publica = estab4 !== '0000' && validarPublicaModulo11(id);
+    const natural = estab3 !== '000' && validarModulo10(id.substring(0, 10));
+    return publica || natural;
   }
-  // 4. Aplicar el algoritmo matemático correspondiente según el tercer dígito
-  if (tercerDigito < 6) {
-    // Persona Natural / Cédula (Módulo 10)
-    return validarModulo10(identificacion.substring(0, 10));
-  } else if (tercerDigito === 6) {
-    // Institución Pública (Módulo 11)
-    return validarPublicaModulo11(identificacion.substring(0, 13));
-  } else if (tercerDigito === 9) {
-    // Sociedad Privada / Jurídica (Módulo 11)
-    return validarPrivadaModulo11(identificacion.substring(0, 13));
+  if (tercer === 9) {
+    return estab3 !== '000' && validarPrivadaModulo11(id);
   }
   return false;
 }
+
 
 function validarModulo10(digitos10: string): boolean {
   const coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2];
