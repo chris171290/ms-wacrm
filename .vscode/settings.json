@@ -1,6 +1,8 @@
 {
   "conventionalCommits.scopes": [
     "deals",
-    "auth"
+    "auth",
+    "dashboard",
+    "contacts"
   ]
 }

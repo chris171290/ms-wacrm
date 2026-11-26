@@ -32,6 +32,8 @@ import {
   SHOW_LEGACY_CONTACT_FIELDS,
 } from '@/lib/contacts/constants';
 import { validarIdentificacionEcuador } from '@/lib/contacts/cedula-validator';
+import { isValidEcuadorianMobile } from '@/lib/contacts/ecuador-mobile';
+import { isValidContactEmail } from '@/lib/contacts/email-validation';
 import { useCampanas } from '@/hooks/use-campanas';
 import { checkVentasByCedula } from '@/lib/contacts/check-ventas';
 
@@ -62,9 +64,11 @@ export function ContactForm({
   const [name, setName] = useState('');
   const [nombreCompleto, setNombreCompleto] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneError, setPhoneError] = useState('');
   const [identificacion, setIdentificacion] = useState('');
   const [identificacionError, setIdentificacionError] = useState('');
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   const [company, setCompany] = useState('');
   const [biometria, setBiometria] = useState(false);
   const [ordenVenta, setOrdenVenta] = useState('');
@@ -91,9 +95,11 @@ export function ContactForm({
       setName(contact?.name ?? '');
       setNombreCompleto(contact?.nombre_completo ?? '');
       setPhone(contact?.phone ?? '');
+      setPhoneError('');
       setIdentificacion(contact?.identificacion ?? '');
       setIdentificacionError('');
       setEmail(contact?.email ?? '');
+      setEmailError('');
       setCompany(contact?.company ?? '');
       setBiometria(contact?.biometria ?? false);
       setOrdenVenta(contact?.orden_venta ?? '');
@@ -105,15 +111,18 @@ export function ContactForm({
     }
   }, [open, contact]);
 
-  // Look up an existing contact with this number (new contacts only).
-  // Runs on blur so we don't query on every keystroke.
+  // Validate on blur and check for duplicates on new contacts only.
   async function checkDuplicate() {
-    if (isEdit || !accountId) return;
     const value = phone.trim();
     if (!value) {
       setDupMatch(null);
       return;
     }
+    if (!validatePhone(value)) {
+      setDupMatch(null);
+      return;
+    }
+    if (isEdit || !accountId) return;
     setCheckingDup(true);
     try {
       const existing = await findExistingContact(supabase, accountId, value);
@@ -127,6 +136,18 @@ export function ContactForm({
     }
   }
   const lastCheckedCedulaRef = useRef<string | null>(null);
+
+  function validatePhone(value: string) {
+    const valid = isValidEcuadorianMobile(value);
+    setPhoneError(valid ? '' : t('phoneInvalid'));
+    return valid;
+  }
+
+  function validateEmail(value: string) {
+    const valid = !value.trim() || isValidContactEmail(value);
+    setEmailError(valid ? '' : t('emailInvalid'));
+    return valid;
+  }
 
   function validateIdentificacion(value: string) {
     const trimmed = value.trim();
@@ -179,8 +200,17 @@ export function ContactForm({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!validateEmail(email)) {
+      toast.error(t('emailInvalid'));
+      return;
+    }
+
     if (!phone.trim()) {
       toast.error(t('phoneRequired'));
+      return;
+    }
+    if (!validatePhone(phone)) {
+      toast.error(t('phoneInvalid'));
       return;
     }
 
@@ -318,6 +348,7 @@ export function ContactForm({
         <form
           id="contact-form"
           onSubmit={handleSubmit}
+          noValidate
           className="space-y-4 overflow-y-auto px-6 py-4 flex-1 min-h-0"
         >
           <div className="space-y-2">
@@ -342,11 +373,15 @@ export function ContactForm({
               value={phone}
               onChange={(e) => {
                 setPhone(e.target.value);
+                if (phoneError) setPhoneError('');
                 if (dupMatch) setDupMatch(null);
               }}
               onBlur={checkDuplicate}
               placeholder={t('phonePlaceholder')}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              type="tel"
+              inputMode="tel"
+              aria-invalid={!!phoneError}
+              className={`bg-muted border-border text-foreground placeholder:text-muted-foreground ${phoneError ? 'border-red-400' : ''}`}
             />
             {dupMatch ? (
               <div
@@ -374,6 +409,8 @@ export function ContactForm({
                   )}
                 </div>
               </div>
+            ) : phoneError ? (
+              <p className="text-xs text-red-400">{phoneError}</p>
             ) : (
               <p className="text-xs text-muted-foreground">
                 {t('phoneHint')}
@@ -429,10 +466,18 @@ export function ContactForm({
               id="cf-email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (emailError) setEmailError('');
+              }}
+              onBlur={(e) => validateEmail(e.target.value)}
+              aria-invalid={!!emailError}
               placeholder={t('emailPlaceholder')}
-              className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
+              className={`bg-muted border-border text-foreground placeholder:text-muted-foreground ${emailError ? 'border-red-400' : ''}`}
             />
+            {emailError && (
+              <p className="text-xs text-red-400">{emailError}</p>
+            )}
           </div>
 
           <div className="space-y-2">
