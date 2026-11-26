@@ -99,21 +99,69 @@ export interface CreatePersonInput {
   googleMapsLink?: string | null;
 }
 
-// Busca un Person existente en Twenty por cédula (ci). Si ya existe,
-// evita crear un cliente duplicado cada vez que se marca una venta
-// como ganada para la misma persona.
-export async function findTwentyPersonByCi(ci: string): Promise<{ id: string } | null> {
-  const filter = `ci[eq]:"${ci}"`;
-  const url = `${TWENTY_BASE_URL}/rest/people?filter=${encodeURIComponent(filter)}`;
+// // Busca un Person existente en Twenty por cédula (ci). Si ya existe,
+// // evita crear un cliente duplicado cada vez que se marca una venta
+// // como ganada para la misma persona.
+// export async function findTwentyPersonByCi(ci: string): Promise<{ id: string } | null> {
+//   const filter = `ci[eq]:"${ci}"`;
+//   const url = `${TWENTY_BASE_URL}/rest/people?filter=${encodeURIComponent(filter)}`;
 
+//   const res = await fetch(url, { method: "GET", headers: authHeaders() });
+//   if (!res.ok) {
+//     throw new Error(`Majois CRM: error al buscar persona (${res.status}): ${await res.text().catch(() => "")}`);
+//   }
+
+//   const json = await res.json();
+//   const person = json?.data?.people?.[0];
+//   return person?.id ? { id: person.id } : null;
+// }
+
+// Twenty rechazó el registro por un índice único (p. ej. correo repetido).
+class TwentyDuplicateError extends Error {}
+
+function sanitizeFilterValue(value: string) {
+  return value.replace(/"/g, "").trim();
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function queryTwentyPeople(filter: string): Promise<any[]> {
+  const url = `${TWENTY_BASE_URL}/rest/people?filter=${encodeURIComponent(filter)}`;
   const res = await fetch(url, { method: "GET", headers: authHeaders() });
   if (!res.ok) {
-    throw new Error(`Majois CRM: error al buscar persona (${res.status}): ${await res.text().catch(() => "")}`);
+    throw new Error(`Twenty: error al buscar persona (${res.status}): ${await res.text().catch(() => "")}`);
   }
-
   const json = await res.json();
-  const person = json?.data?.people?.[0];
-  return person?.id ? { id: person.id } : null;
+  return json?.data?.people ?? [];
+}
+
+export async function findTwentyPersonByCi(ci: string): Promise<{ id: string } | null> {
+  const value = sanitizeFilterValue(ci);
+  if (!value) return null;
+  const people = await queryTwentyPeople(`ci[eq]:"${value}"`);
+  return people[0]?.id ? { id: people[0].id } : null;
+}
+
+// Si esta búsqueda falla (sintaxis, red), no debe tumbar la integración:
+// se registra y se sigue como si no hubiera coincidencia por correo.
+export async function findTwentyPersonByEmail(email: string): Promise<{ id: string } | null> {
+  const value = sanitizeFilterValue(email).toLowerCase();
+  if (!value) return null;
+  try {
+    const people = await queryTwentyPeople(`emails.primaryEmail[ilike]:"${value}"`);
+    const match = people.find(
+      (p) => String(p?.emails?.primaryEmail ?? "").toLowerCase() === value,
+    );
+    return match?.id ? { id: match.id } : null;
+  } catch (err) {
+    console.warn("[twenty] búsqueda de persona por correo falló:", err);
+    return null;
+  }
+}
+
+async function findExistingTwentyPerson(input: CreatePersonInput) {
+  const byCi = await findTwentyPersonByCi(input.identificacion);
+  if (byCi) return byCi;
+  return input.email ? findTwentyPersonByEmail(input.email) : null;
 }
 
 
@@ -141,9 +189,14 @@ export async function createTwentyPerson(input: CreatePersonInput) {
     headers: authHeaders(),
     body: JSON.stringify(body),
   });
+
   if (!res.ok) {
-    throw new Error(`Majois CRM: error al crear persona (${res.status}): ${await res.text().catch(() => "")}`);
+    const text = await res.text().catch(() => "");
+    const message = `Majois CRM: error al crear persona (${res.status}): ${text}`;
+    if (res.status === 400 && /duplicate/i.test(text)) throw new TwentyDuplicateError(message);
+    throw new Error(message);
   }
+
   const json = await res.json();
   const person = json?.data?.createPerson ?? json;
   if (!person?.id) throw new Error("Majois CRM: persona creada sin id en la respuesta");
@@ -153,9 +206,23 @@ export async function createTwentyPerson(input: CreatePersonInput) {
 
 // Punto de entrada que usa mark-won: busca primero, crea solo si no existe.
 export async function findOrCreateTwentyPerson(input: CreatePersonInput): Promise<{ id: string }> {
-  const existing = await findTwentyPersonByCi(input.identificacion);
+  const existing = await findExistingTwentyPerson(input);
   if (existing) return existing;
-  return createTwentyPerson(input);
+
+  try {
+    return await createTwentyPerson(input);
+  } catch (err) {
+    // Twenty dice que ya existe por un índice que la búsqueda no cubrió:
+    // se vuelve a buscar y, si aparece, se reutiliza en vez de fallar.
+    if (err instanceof TwentyDuplicateError) {
+      const again = await findExistingTwentyPerson(input);
+      if (again) return again;
+      console.error(
+        `[twenty] persona duplicada pero no se encontró por cédula "${input.identificacion}" ni correo "${input.email ?? ""}"`,
+      );
+    }
+    throw err;
+  }
 }
 
 export interface CreateOpportunityInput {
