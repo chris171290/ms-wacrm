@@ -3,6 +3,7 @@
     "deals",
     "auth",
     "dashboard",
-    "contacts"
+    "contacts",
+    "pipeline"
   ]
 }

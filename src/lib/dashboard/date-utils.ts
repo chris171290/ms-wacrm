@@ -15,6 +15,42 @@ export function daysAgoStart(days: number): Date {
   return out
 }
 
+/** Minutes between two timestamps that fall Monday–Friday, 08:00–17:00 local time. */
+export function businessMinutesBetween(start: Date, end: Date): number {
+  if (end <= start) return 0
+
+  let totalMilliseconds = 0
+  const day = startOfLocalDay(start)
+
+  while (day < end) {
+    const weekday = day.getDay()
+    if (weekday !== 0 && weekday !== 6) {
+      const windowStart = new Date(day)
+      windowStart.setHours(8, 0, 0, 0)
+      const windowEnd = new Date(day)
+      windowEnd.setHours(17, 0, 0, 0)
+      const overlapStart = Math.max(start.getTime(), windowStart.getTime())
+      const overlapEnd = Math.min(end.getTime(), windowEnd.getTime())
+
+      if (overlapEnd > overlapStart) {
+        totalMilliseconds += overlapEnd - overlapStart
+      }
+    }
+
+    day.setDate(day.getDate() + 1)
+  }
+
+  return totalMilliseconds / 60_000
+}
+
+export function weekdayBusinessMinutesBetween(
+  start: Date,
+  end: Date,
+): number | null {
+  if (mondayIndex(start) >= 5 || end < start) return null
+  return businessMinutesBetween(start, end)
+}
+
 /** Date-only key (YYYY-MM-DD) for bucketing rows by local calendar day. */
 export function localDayKey(d: Date | string): string {
   const date = typeof d === 'string' ? new Date(d) : d

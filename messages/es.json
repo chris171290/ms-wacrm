@@ -128,7 +128,7 @@
     },
     "responseTimeChart": {
       "title": "Tiempo promedio de primera respuesta",
-      "description": "Minutos para responder al primer mensaje sin responder de un cliente, por día de la semana",
+      "description": "Período {startDate} – {endDate} · Tiempo hábil: lun – vie, 08:00 – 17:00 · Sin fines de semana",
       "target": "objetivo {minutes}m",
       "thisWeek": "Esta semana:",
       "lastWeek": "Semana pasada:",

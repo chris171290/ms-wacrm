@@ -46,6 +46,8 @@ export interface ResponseTimeSummary {
   buckets: ResponseTimeBucket[]
   thisWeekAvg: number | null
   lastWeekAvg: number | null
+  periodStart: string
+  periodEnd: string
 }
 
 export type ActivityKind =

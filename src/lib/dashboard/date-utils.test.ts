@@ -1,11 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  businessMinutesBetween,
   DOW_SHORT_MON_FIRST,
   daysAgoStart,
   lastNDayKeys,
   localDayKey,
   mondayIndex,
   startOfLocalDay,
+  weekdayBusinessMinutesBetween,
 } from "./date-utils";
 
 describe("startOfLocalDay", () => {
@@ -26,6 +28,59 @@ describe("startOfLocalDay", () => {
     const before = d.getTime();
     startOfLocalDay(d);
     expect(d.getTime()).toBe(before);
+  });
+});
+
+describe("businessMinutesBetween", () => {
+  it("counts only the overlap with weekday work hours", () => {
+    const start = new Date(2026, 4, 18, 9, 15); // Monday, 9:15
+    const end = new Date(2026, 4, 18, 10, 45); // Monday, 10:45
+    expect(businessMinutesBetween(start, end)).toBe(90);
+  });
+
+  it("pauses overnight and resumes the next weekday at 8", () => {
+    const start = new Date(2026, 4, 18, 16, 30); // Monday
+    const end = new Date(2026, 4, 19, 9, 30); // Tuesday
+    expect(businessMinutesBetween(start, end)).toBe(120);
+  });
+
+  it("starts a weekend inquiry at 8 on Monday", () => {
+    const start = new Date(2026, 9, 10, 10); // Saturday
+    const end = new Date(2026, 9, 12, 12); // Monday
+    expect(businessMinutesBetween(start, end)).toBe(240);
+  });
+
+  it("treats 8 as inclusive and 17 as exclusive", () => {
+    const startAtOpening = new Date(2026, 4, 18, 8);
+    const endAtClosing = new Date(2026, 4, 18, 17);
+    expect(businessMinutesBetween(startAtOpening, endAtClosing)).toBe(540);
+
+    const afterClosing = new Date(2026, 4, 18, 17);
+    const nextOpening = new Date(2026, 4, 19, 8);
+    expect(businessMinutesBetween(afterClosing, nextOpening)).toBe(0);
+  });
+
+  it("returns zero when the end precedes the start", () => {
+    const start = new Date(2026, 4, 19, 9);
+    const end = new Date(2026, 4, 18, 9);
+    expect(businessMinutesBetween(start, end)).toBe(0);
+  });
+});
+
+describe("weekdayBusinessMinutesBetween", () => {
+  it("omits Saturday and Sunday inquiries", () => {
+    expect(
+      weekdayBusinessMinutesBetween(new Date(2026, 9, 10, 10), new Date(2026, 9, 12, 12)),
+    ).toBeNull();
+    expect(
+      weekdayBusinessMinutesBetween(new Date(2026, 9, 11, 10), new Date(2026, 9, 12, 12)),
+    ).toBeNull();
+  });
+
+  it("includes weekday inquiries with business-time duration", () => {
+    expect(
+      weekdayBusinessMinutesBetween(new Date(2026, 9, 9, 16), new Date(2026, 9, 12, 9)),
+    ).toBe(120);
   });
 });
 

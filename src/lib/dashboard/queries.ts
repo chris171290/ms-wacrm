@@ -4,6 +4,7 @@ import {
   DOW_SHORT_MON_FIRST,
   mondayIndex,
   startOfLocalDay,
+  weekdayBusinessMinutesBetween,
 } from './date-utils'
 import type {
   ActivityItem,
@@ -168,11 +169,13 @@ export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
   // outbound" pair. 14 days gives us both "this week" + "last week"
   // with enough overlap if the user opens the dashboard late on a
   // Monday.
-  const fourteenDaysAgo = daysAgoStart(13).toISOString()
+  const periodStart = daysAgoStart(13)
+  const periodEnd = new Date()
   const { data, error } = await db
     .from('messages')
     .select('conversation_id, sender_type, created_at')
-    .gte('created_at', fourteenDaysAgo)
+    .gte('created_at', periodStart.toISOString())
+    .lte('created_at', periodEnd.toISOString())
     .order('conversation_id', { ascending: true })
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -209,9 +212,8 @@ export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
     }
   }
 
-  const now = new Date()
-  const thisWeekStart = daysAgoStart(mondayIndex(now))
-  const lastWeekStart = daysAgoStart(mondayIndex(now) + 7)
+  const thisWeekStart = daysAgoStart(mondayIndex(periodEnd))
+  const lastWeekStart = daysAgoStart(mondayIndex(periodEnd) + 7)
 
   // Per-day-of-week buckets, averaged over both weeks' worth of data
   // so each bar has more samples to stand on. If a day has no samples
@@ -222,8 +224,8 @@ export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
   const lastWeekMins: number[] = []
 
   for (const s of samples) {
-    const diffMin = (s.responseAt.getTime() - s.customerAt.getTime()) / 60_000
-    if (diffMin < 0) continue
+    const diffMin = weekdayBusinessMinutesBetween(s.customerAt, s.responseAt)
+    if (diffMin === null) continue
     const dow = mondayIndex(s.customerAt)
     byDow.get(dow)!.push(diffMin)
     if (s.customerAt >= thisWeekStart) {
@@ -253,6 +255,8 @@ export async function loadResponseTime(db: DB): Promise<ResponseTimeSummary> {
     buckets,
     thisWeekAvg: avg(thisWeekMins),
     lastWeekAvg: avg(lastWeekMins),
+    periodStart: periodStart.toISOString(),
+    periodEnd: periodEnd.toISOString(),
   }
 }
 

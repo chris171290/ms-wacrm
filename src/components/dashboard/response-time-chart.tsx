@@ -1,11 +1,12 @@
 "use client"
 
 import { Clock } from 'lucide-react'
-import { DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
+import { daysAgoStart, DOW_SHORT_MON_FIRST } from '@/lib/dashboard/date-utils'
 import type { ResponseTimeSummary } from '@/lib/dashboard/types'
 import { BarChart } from '@/components/tremor/bar-chart'
 import { EmptyState } from './empty-state'
 import { Skeleton } from './skeleton'
+import { useLocale, useTranslations } from 'next-intl'
 
 interface ResponseTimeChartProps {
   data: ResponseTimeSummary | null
@@ -19,8 +20,6 @@ interface ResponseTimeChartProps {
   thresholdMinutes?: number
 }
 
-import { useTranslations } from 'next-intl'
-
 // Single category, single colour — the data is "average minutes
 // per weekday". Tremor expects categories as the second tuple in
 // the row object, so we shape the buckets into
@@ -32,7 +31,16 @@ export function ResponseTimeChart({
   loading,
   thresholdMinutes = 5,
 }: ResponseTimeChartProps) {
+  const locale = useLocale()
   const t = useTranslations('Dashboard.responseTimeChart')
+  const dateFormatter = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' })
+  const periodStart =
+    data?.periodStart ?? daysAgoStart(13).toISOString()
+  const periodEnd = data?.periodEnd ?? new Date().toISOString()
+  const description = t('description', {
+    startDate: dateFormatter.format(new Date(periodStart)),
+    endDate: dateFormatter.format(new Date(periodEnd)),
+  })
   const hasData = data?.buckets.some((b) => b.avgMinutes != null) ?? false
 
   // Map buckets → Tremor rows. Null `avgMinutes` (no samples)
@@ -54,7 +62,7 @@ export function ResponseTimeChart({
             {t('title')}
           </h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            {t('description')}
+            {description}
           </p>
         </div>
         <div className="flex items-center gap-3 text-right text-xs">
@@ -99,7 +107,7 @@ export function ResponseTimeChart({
             colors={['violet']}
             valueFormatter={(value) => `${value.toFixed(1)}m`}
             showLegend={false}
-            yAxisWidth={48}
+            yAxisWidth={72}
             // Compact height so the chart sits well inside the card
             // without dominating the row alongside the donut + activity feed.
             className="h-[260px]"
