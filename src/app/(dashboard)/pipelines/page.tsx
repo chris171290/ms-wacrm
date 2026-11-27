@@ -82,6 +82,7 @@ export default function PipelinesPage() {
 
   const [pipelines, setPipelines] = useState<Pipeline[]>([]);
   const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
+  const [loadedPipelineId, setLoadedPipelineId] = useState<string>("");
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
@@ -306,6 +307,7 @@ export default function PipelinesPage() {
       if (cancelled) return;
       setStages(s);
       setDeals(d);
+      setLoadedPipelineId(selectedPipelineId);
     })();
     return () => {
       cancelled = true;
@@ -446,7 +448,10 @@ export default function PipelinesPage() {
     }
   }
 
-  if (loading) {
+  if (
+    loading ||
+    (selectedPipelineId !== "" && loadedPipelineId !== selectedPipelineId)
+  ) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
