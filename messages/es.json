@@ -634,7 +634,9 @@
       "noContact": "Sin contacto",
       "won": "Ganado",
       "lost": "Perdido",
-      "ordenDeVenta": "Ord. Vta."
+      "ordenDeVenta": "Ord. Vta.",
+      "activationDate": "Fecha de alta",
+      "activationDateShort": "Alta"
     },
     "form": {
       "attachments": {

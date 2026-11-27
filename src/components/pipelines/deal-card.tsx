@@ -3,7 +3,7 @@
 import type { Deal, PipelineStage } from "@/types";
 import { Calendar, Check, X } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 interface DealCardProps {
   deal: Deal;
@@ -12,8 +12,11 @@ interface DealCardProps {
   isOverlay?: boolean;
 }
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-US", {
+function formatDate(dateStr: string, locale: string) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+    ? new Date(`${dateStr}T00:00:00`)
+    : new Date(dateStr);
+  return date.toLocaleDateString(locale, {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -28,6 +31,7 @@ function initials(name?: string, fallback?: string) {
 
 export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
   const t = useTranslations("Pipelines.card");
+  const locale = useLocale();
   const contactLabel = deal.title || deal.contact?.name || deal.contact?.phone || t("noContact");
   const assigneeLabel = deal.assignee?.full_name || null;
 
@@ -93,10 +97,14 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
         <span className="text-sm font-bold text-primary">
           {formatCurrency(deal.value, deal.currency)}
         </span>
-        {deal.created_at && (
-          <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        {deal.fecha_alta && (
+          <span
+            title={t("activationDate")}
+            className="flex items-center gap-1 text-[11px] text-muted-foreground"
+          >
             <Calendar className="h-3 w-3" />
-            {formatDate(deal.created_at)}
+            <span>{t("activationDateShort")}:</span>
+            {formatDate(deal.fecha_alta, locale)}
           </span>
         )}
       </div>

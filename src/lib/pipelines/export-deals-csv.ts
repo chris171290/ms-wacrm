@@ -29,7 +29,7 @@ export interface DealsCsvLabels {
 }
 
 function quoteIfNeeded(text: string): string {
-  return /["\r\n]/.test(text) || text.includes(CSV_DELIMITER)
+  return /[",;\r\n]/.test(text)
     ? `"${text.replace(/"/g, '""')}"`
     : text;
 }
@@ -42,7 +42,9 @@ function quoteIfNeeded(text: string): string {
 export function csvCell(raw: string | number | null | undefined): string {
   if (raw === null || raw === undefined) return "";
   if (typeof raw === "number") {
-    return Number.isFinite(raw) ? String(raw).replace(".", CSV_DECIMAL) : "";
+    return Number.isFinite(raw)
+      ? quoteIfNeeded(String(raw).replace(".", CSV_DECIMAL))
+      : "";
   }
   const text = /^[=+\-@\t\r]/.test(raw) ? `'${raw}` : raw;
   return quoteIfNeeded(text);

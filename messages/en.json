@@ -556,7 +556,9 @@
     "card": {
       "noContact": "No contact",
       "won": "Won",
-      "lost": "Lost"
+      "lost": "Lost",
+      "activationDate": "Activation date",
+      "activationDateShort": "Activation"
     },
     "form": {
       "editDeal": "Edit Deal",

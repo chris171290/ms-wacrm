@@ -89,6 +89,7 @@
 
 :root,
 html[data-mode="dark"] {
+  color-scheme: dark;
   --background: oklch(0.13 0.01 260);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.18 0.01 260);
@@ -118,6 +119,7 @@ html[data-mode="dark"] {
 }
 
 html[data-mode="light"] {
+  color-scheme: light;
   --background: oklch(0.99 0.002 260);
   --foreground: oklch(0.21 0.01 260);
   --card: oklch(1 0 0);

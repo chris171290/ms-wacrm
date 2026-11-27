@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GitBranch, Plus, ChevronDown, Settings, Search, X } from "lucide-react";
+import { GitBranch, Plus, ChevronDown, Settings, X } from "lucide-react";
 import { toast } from "sonner";
 import { useCan } from "@/hooks/use-can";
 import { useAuth } from "@/hooks/use-auth";
@@ -57,6 +57,18 @@ const SPEC_DEFAULT_STAGES = [
 ];
 
 const VIEW_STORAGE_KEY = "majois:pipelines:view";
+
+function getCurrentMonthDateRange() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const lastDay = new Date(year, now.getMonth() + 1, 0).getDate();
+
+  return {
+    from: `${year}-${month}-01`,
+    to: `${year}-${month}-${String(lastDay).padStart(2, "0")}`,
+  };
+}
 
 export default function PipelinesPage() {
   const t = useTranslations("Pipelines.page");
@@ -111,8 +123,9 @@ export default function PipelinesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "won" | "lost">("all");
   const [agentFilter, setAgentFilter] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [currentMonth] = useState(getCurrentMonthDateRange);
+  const [dateFrom, setDateFrom] = useState(currentMonth.from);
+  const [dateTo, setDateTo] = useState(currentMonth.to);
 
   // Guard against double-seeding (React StrictMode double-effect in dev).
   const seedAttempted = useRef(false);
@@ -183,16 +196,11 @@ export default function PipelinesPage() {
   const filteredDeals = useMemo(() => {
     const q = normalize(searchQuery.trim());
 
-    // Rango en HORA LOCAL: `${fecha}T00:00:00` sin zona se interpreta como local.
-    const from = dateFrom ? new Date(`${dateFrom}T00:00:00`).getTime() : null;
-    const to = dateTo ? new Date(`${dateTo}T23:59:59.999`).getTime() : null;
-
     return deals.filter((d) => {
       if (statusFilter !== "all" && d.status !== statusFilter) return false;
       if (agentFilter !== "all" && d.assigned_to !== agentFilter) return false;
-      const createdAt = new Date(d.created_at).getTime();
-      if (from !== null && createdAt < from) return false;
-      if (to !== null && createdAt > to) return false;
+      if (dateFrom && (!d.fecha_alta || d.fecha_alta < dateFrom)) return false;
+      if (dateTo && (!d.fecha_alta || d.fecha_alta > dateTo)) return false;
       if (q) {
         const contact = (d as any).contact;
         const haystack = normalize(
@@ -555,40 +563,42 @@ export default function PipelinesPage() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card p-3">
-            <div className="relative min-w-[220px] flex-1">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("searchPlaceholder")}
-                className="border-border bg-muted pl-8 text-foreground"
+            <div className="relative">
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                className="h-9 appearance-none rounded-lg border border-border bg-muted py-0 pl-2.5 pr-8 text-sm text-foreground outline-none focus:border-primary"
+              >
+                <option value="all">{t("filterAllStatus")}</option>
+                <option value="open">{t("filterOpen")}</option>
+                <option value="won">{t("filterWon")}</option>
+                <option value="lost">{t("filterLost")}</option>
+              </select>
+              <ChevronDown
+                aria-hidden="true"
+                className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
               />
             </div>
 
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-              className="h-9 rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-            >
-              <option value="all">{t("filterAllStatus")}</option>
-              <option value="open">{t("filterOpen")}</option>
-              <option value="won">{t("filterWon")}</option>
-              <option value="lost">{t("filterLost")}</option>
-            </select>
-
             {canFilterByAgent && (
-              <select
-                value={agentFilter}
-                onChange={(e) => setAgentFilter(e.target.value)}
-                className="h-9 rounded-lg border border-border bg-muted px-2.5 text-sm text-foreground outline-none focus:border-primary"
-              >
-                <option value="all">{t("filterAllAgents")}</option>
-                {assignableAgents.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.full_name}
-                  </option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={agentFilter}
+                  onChange={(e) => setAgentFilter(e.target.value)}
+                  className="h-9 appearance-none rounded-lg border border-border bg-muted py-0 pl-2.5 pr-8 text-sm text-foreground outline-none focus:border-primary"
+                >
+                  <option value="all">{t("filterAllAgents")}</option>
+                  {assignableAgents.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.full_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  aria-hidden="true"
+                  className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
+              </div>
             )}
 
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -598,6 +608,7 @@ export default function PipelinesPage() {
                 value={dateFrom}
                 max={dateTo || undefined}
                 onChange={(e) => setDateFrom(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker()}
                 className="h-9 w-[150px] border-border bg-muted text-foreground"
               />
               <span>{t("dateToLabel")}</span>
@@ -606,6 +617,7 @@ export default function PipelinesPage() {
                 value={dateTo}
                 min={dateFrom || undefined}
                 onChange={(e) => setDateTo(e.target.value)}
+                onClick={(e) => e.currentTarget.showPicker()}
                 className="h-9 w-[150px] border-border bg-muted text-foreground"
               />
             </div>
@@ -625,6 +637,8 @@ export default function PipelinesPage() {
           <PipelineViewToolbar
             view={view}
             onViewChange={changeView}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             onExport={handleExportCsv}
             exportDisabled={filteredDeals.length === 0}
             totalCount={filteredDeals.length}
