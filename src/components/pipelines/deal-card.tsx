@@ -60,7 +60,7 @@ export function DealCard({ deal, stage, onEdit, isOverlay }: DealCardProps) {
 
       <div className="flex items-start justify-between gap-2">
         <h4 className="flex-1 text-sm font-semibold leading-snug text-foreground break-words">
-          {deal.contact?.name}
+          {deal.contact?.nombre_completo || deal.contact?.name}
         </h4>
         {deal.status === "won" && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold text-primary">
