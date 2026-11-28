@@ -899,6 +899,7 @@
         "wait": "Wait",
         "condition": "Condition (If/Else)",
         "send_webhook": "Send Webhook",
+        "send_email": "Send Email",
         "close_conversation": "Close Conversation"
       },
       "triggers": {
@@ -933,6 +934,10 @@
         "time_based": {
           "label": "Time-Based",
           "hint": "On a recurring schedule"
+        },
+        "unanswered_conversation": {
+          "label": "Unanswered Conversation",
+          "hint": "When an assigned agent has not replied to the latest customer message"
         }
       },
       "trigger": "Trigger",
@@ -1039,7 +1044,13 @@
         "matchWord": "Whole word",
         "matchWordHint": "Matches the keyword only as a standalone word, so \"k\" no longer fires on \"thanks\". Best for short keywords in space-separated languages; use Contains for languages written without spaces.",
         "matchExact": "Exact",
-        "closeConversationHint": "Sets the conversation status to \"closed\". No configuration needed."
+        "closeConversationHint": "Sets the conversation status to \"closed\". No configuration needed.",
+        "timeoutMinutes": "Minutes without an agent reply",
+        "emailRecipients": "Send to account owners/admins",
+        "noEmailRecipients": "No owner or admin members are available.",
+        "emailSubject": "Email subject",
+        "emailBody": "Email body",
+        "emailPlaceholders": "Available: {{contact.name}}, {{contact.phone}}, {{agent.name}}, {{message.text}}, {{conversation.url}}"
       }
     }
   },

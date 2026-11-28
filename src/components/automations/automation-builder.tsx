@@ -26,6 +26,7 @@ import {
   Hourglass,
   GitBranch,
   Webhook,
+  Mail,
   CircleSlash,
   Zap,
   Loader2,
@@ -119,6 +120,7 @@ const STEP_META: Record<AutomationStepType, StepMeta> = {
   wait: { label: "wait", icon: Hourglass, border: "border-l-border" },
   condition: { label: "condition", icon: GitBranch, border: "border-l-amber-500" },
   send_webhook: { label: "send_webhook", icon: Webhook, border: "border-l-primary" },
+  send_email: { label: "send_email", icon: Mail, border: "border-l-primary" },
   close_conversation: { label: "close_conversation", icon: CircleSlash, border: "border-l-primary" },
 }
 
@@ -135,6 +137,7 @@ const ADDABLE_STEPS: AutomationStepType[] = [
   "wait",
   "condition",
   "send_webhook",
+  "send_email",
   "close_conversation",
 ]
 
@@ -147,6 +150,7 @@ const TRIGGER_OPTIONS: { value: AutomationTriggerType }[] = [
   { value: "conversation_assigned" },
   { value: "tag_added" },
   { value: "time_based" },
+  { value: "unanswered_conversation" },
 ]
 
 function cid(): string {
@@ -195,6 +199,13 @@ function blankConfig(type: AutomationStepType): Record<string, unknown> {
       return { subject: "tag_presence", operand: "", value: "" }
     case "send_webhook":
       return { url: "", headers: {}, body_template: "" }
+    case "send_email":
+      return {
+        recipient_user_ids: [],
+        subject: "Conversación sin respuesta del agente",
+        body:
+          "El cliente espera una respuesta.\n\nContacto: {{contact.name}}\nTeléfono: {{contact.phone}}\nAgente asignado: {{agent.name}}\nÚltimo mensaje: {{message.text}}\nAbrir conversación: {{conversation.url}}",
+      }
     case "close_conversation":
       return {}
     default:
@@ -835,7 +846,13 @@ function TriggerCard({
               </label>
               <select
                 value={type}
-                onChange={(e) => onTypeChange(e.target.value as AutomationTriggerType)}
+                onChange={(e) => {
+                  const nextType = e.target.value as AutomationTriggerType
+                  onTypeChange(nextType)
+                  if (nextType === "unanswered_conversation") {
+                    onConfigChange({ timeout_minutes: 30 })
+                  }
+                }}
                 className="w-full rounded-md border border-border bg-muted px-2 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
               >
                 {TRIGGER_OPTIONS.map((o) => (
@@ -886,6 +903,27 @@ function TriggerCard({
                 <p className="mt-1 text-[11px] text-muted-foreground">
                   {t("scheduleHint")}
                 </p>
+              </div>
+            )}
+            {type === "unanswered_conversation" && (
+              <div>
+                <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                  {t("config.timeoutMinutes")}
+                </label>
+                <Input
+                  type="number"
+                  min={1}
+                  max={10080}
+                  step={1}
+                  value={(config.timeout_minutes as number) ?? 30}
+                  onChange={(e) =>
+                    onConfigChange({
+                      ...config,
+                      timeout_minutes: Number(e.target.value),
+                    })
+                  }
+                  className="bg-muted text-foreground"
+                />
               </div>
             )}
           </div>
@@ -1298,6 +1336,7 @@ function StepEditor({
   onChange: (s: BuilderStep) => void
 }) {
   const t = useTranslations("Automations.builder")
+  const { members } = useResources()
   const cfg = step.step_config
   const set = (patch: Record<string, unknown>) =>
     onChange({ ...step, step_config: { ...cfg, ...patch } })
@@ -1502,6 +1541,63 @@ function StepEditor({
           </FieldBlock>
         </>
       )
+    case "send_email": {
+      const recipients = Array.isArray(cfg.recipient_user_ids)
+        ? cfg.recipient_user_ids.filter((id): id is string => typeof id === "string")
+        : []
+      const managers = members.filter((member) => member.role === "owner" || member.role === "admin")
+      return (
+        <>
+          <FieldBlock label={t("config.emailRecipients")}>
+            <div className="max-h-40 space-y-2 overflow-y-auto rounded-md border border-border p-2">
+              {managers.length === 0 ? (
+                <p className="text-xs text-muted-foreground">{t("config.noEmailRecipients")}</p>
+              ) : (
+                managers.map((member) => (
+                  <label key={member.user_id} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={recipients.includes(member.user_id)}
+                      onChange={(event) =>
+                        set({
+                          recipient_user_ids: event.target.checked
+                            ? [...recipients, member.user_id]
+                            : recipients.filter((id) => id !== member.user_id),
+                        })
+                      }
+                      className="accent-primary"
+                    />
+                    <span className="min-w-0 flex-1 truncate">
+                      {member.full_name || member.user_id}
+                    </span>
+                    <span className="text-xs capitalize text-muted-foreground">
+                      {member.role}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          </FieldBlock>
+          <FieldBlock label={t("config.emailSubject")}>
+            <Input
+              value={(cfg.subject as string) ?? ""}
+              onChange={(e) => set({ subject: e.target.value })}
+              className="bg-muted text-foreground"
+            />
+          </FieldBlock>
+          <FieldBlock label={t("config.emailBody")}>
+            <Textarea
+              value={(cfg.body as string) ?? ""}
+              onChange={(e) => set({ body: e.target.value })}
+              className="min-h-28 bg-muted text-foreground"
+            />
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              {String(t.raw("config.emailPlaceholders"))}
+            </p>
+          </FieldBlock>
+        </>
+      )
+    }
     case "close_conversation":
       return (
         <p className="text-xs text-muted-foreground">
@@ -1543,6 +1639,10 @@ function previewFor(step: BuilderStep): string {
       return `when ${step.step_config.subject ?? "?"}`
     case "send_webhook":
       return (step.step_config.url as string) || "no url"
+    case "send_email":
+      return (step.step_config.recipient_user_ids as string[] | undefined)?.length
+        ? `${(step.step_config.recipient_user_ids as string[]).length} recipient(s)`
+        : "no recipients"
     default:
       return ""
   }

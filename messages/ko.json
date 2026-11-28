@@ -884,6 +884,7 @@
         "wait": "대기",
         "condition": "조건 (If/Else)",
         "send_webhook": "웹훅 보내기",
+        "send_email": "이메일 보내기",
         "close_conversation": "대화 닫기"
       },
       "triggers": {
@@ -918,6 +919,10 @@
         "time_based": {
           "label": "시간 기반",
           "hint": "반복 일정에 따라"
+        },
+        "unanswered_conversation": {
+          "label": "응답 없는 대화",
+          "hint": "배정된 상담원이 고객의 마지막 메시지에 답하지 않았을 때"
         }
       },
       "trigger": "트리거",
@@ -1024,7 +1029,13 @@
         "matchWord": "단어 단위 일치",
         "matchWordHint": "키워드가 독립된 단어일 때만 일치하므로 \"k\"가 \"thanks\"에서 실행되지 않습니다. 공백으로 단어를 구분하는 언어의 짧은 키워드에 적합하며, 공백 없이 표기하는 언어에는 \"포함\"을 사용하세요.",
         "matchExact": "정확히 일치",
-        "closeConversationHint": "대화 상태를 \"닫힘\"으로 설정합니다. 추가 설정이 필요 없습니다."
+        "closeConversationHint": "대화 상태를 \"닫힘\"으로 설정합니다. 추가 설정이 필요 없습니다.",
+        "timeoutMinutes": "상담원 응답 대기 시간 (분)",
+        "emailRecipients": "계정 소유자/관리자에게 보내기",
+        "noEmailRecipients": "선택할 소유자 또는 관리자가 없습니다.",
+        "emailSubject": "이메일 제목",
+        "emailBody": "이메일 본문",
+        "emailPlaceholders": "사용 가능: {{contact.name}}, {{contact.phone}}, {{agent.name}}, {{message.text}}, {{conversation.url}}"
       }
     }
   },

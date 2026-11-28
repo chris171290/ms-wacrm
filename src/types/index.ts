@@ -521,6 +521,7 @@ export type AutomationTriggerType =
   | 'conversation_assigned'
   | 'tag_added'
   | 'time_based'
+  | 'unanswered_conversation'
   /** Customer tapped a reply button / list row whose id matches; lets
    *  multi-step menus be chained across automations. */
   | 'interactive_reply';
@@ -538,6 +539,7 @@ export type AutomationStepType =
   | 'wait'
   | 'condition'
   | 'send_webhook'
+  | 'send_email'
   | 'close_conversation';
 
 export type AutomationLogStatus = 'success' | 'partial' | 'failed';
@@ -566,6 +568,11 @@ export interface TimeBasedTriggerConfig {
   timezone?: string;
 }
 
+export interface UnansweredConversationTriggerConfig {
+  /** Minutes an inbound customer message may wait without a human reply. */
+  timeout_minutes: number;
+}
+
 export interface InteractiveReplyTriggerConfig {
   /** Button / list-row ids to match, exact. Any one matching fires. */
   reply_ids: string[];
@@ -576,6 +583,7 @@ export type AutomationTriggerConfig =
   | KeywordMatchTriggerConfig
   | TagTriggerConfig
   | TimeBasedTriggerConfig
+  | UnansweredConversationTriggerConfig
   | InteractiveReplyTriggerConfig
   | Record<string, unknown>;
 
@@ -651,6 +659,12 @@ export interface SendWebhookStepConfig {
   body_template?: string;
 }
 
+export interface SendEmailStepConfig {
+  recipient_user_ids: string[];
+  subject: string;
+  body: string;
+}
+
 export type AutomationStepConfig =
   | SendMessageStepConfig
   | SendButtonsStepConfig
@@ -663,6 +677,7 @@ export type AutomationStepConfig =
   | WaitStepConfig
   | ConditionStepConfig
   | SendWebhookStepConfig
+  | SendEmailStepConfig
   | Record<string, never>
   | Record<string, unknown>;
 

@@ -7,6 +7,7 @@ import { insertSteps, type BuilderStepInput } from '@/lib/automations/steps-tree
 import {
   validateStepsForActivation,
   validateTriggerForActivation,
+  validateTriggerStepsForActivation,
 } from '@/lib/automations/validate'
 
 export async function GET() {
@@ -93,6 +94,10 @@ export async function POST(request: Request) {
     const issues = [
       ...validateTriggerForActivation(effectiveTriggerType, effectiveTriggerConfig ?? {}),
       ...validateStepsForActivation(
+        (effectiveSteps ?? []) as unknown as { step_type: string; step_config: Record<string, unknown> }[],
+      ),
+      ...validateTriggerStepsForActivation(
+        effectiveTriggerType,
         (effectiveSteps ?? []) as unknown as { step_type: string; step_config: Record<string, unknown> }[],
       ),
     ]

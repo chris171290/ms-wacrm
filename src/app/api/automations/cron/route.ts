@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/automations/admin-client'
 import { resumePendingExecution } from '@/lib/automations/engine'
 import type { AutomationContext } from '@/lib/automations/engine'
+import { sweepUnansweredConversations } from '@/lib/automations/unanswered-cron'
 
 /**
  * Drain due `automation_pending_executions` rows. Meant to be hit
@@ -40,10 +41,9 @@ export async function GET(request: Request) {
     .limit(50)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!due || due.length === 0) return NextResponse.json({ processed: 0 })
 
   let processed = 0
-  for (const row of due) {
+  for (const row of due ?? []) {
     const { data: claim } = await admin
       .from('automation_pending_executions')
       .update({ status: 'running' })
@@ -70,5 +70,22 @@ export async function GET(request: Request) {
     processed++
   }
 
-  return NextResponse.json({ processed })
+  try {
+    const unanswered = await sweepUnansweredConversations()
+    const response = { processed, unanswered }
+    if (unanswered.failed > 0) {
+      return NextResponse.json(
+        { ...response, error: 'some unanswered-conversation alerts failed' },
+        { status: 500 },
+      )
+    }
+    return NextResponse.json(response)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[automations-cron] unanswered conversation sweep failed:', message)
+    return NextResponse.json(
+      { processed, error: 'unanswered conversation sweep failed' },
+      { status: 500 },
+    )
+  }
 }

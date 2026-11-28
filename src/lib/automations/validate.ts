@@ -59,6 +59,24 @@ function validateOne(step: StepLike, path: string, issues: ValidationIssue[]): v
         issues.push({ path: `${path}.text`, message: 'message text is required' })
       }
       break
+    case 'send_email':
+      if (
+        !Array.isArray(c.recipient_user_ids) ||
+        c.recipient_user_ids.length === 0 ||
+        c.recipient_user_ids.some((id) => !nonEmpty(id))
+      ) {
+        issues.push({
+          path: `${path}.recipient_user_ids`,
+          message: 'at least one email recipient is required',
+        })
+      }
+      if (!nonEmpty(c.subject)) {
+        issues.push({ path: `${path}.subject`, message: 'email subject is required' })
+      }
+      if (!nonEmpty(c.body)) {
+        issues.push({ path: `${path}.body`, message: 'email body is required' })
+      }
+      break
     case 'send_buttons':
     case 'send_list': {
       // The whole step_config IS the interactive payload; validate it
@@ -186,6 +204,18 @@ export function validateTriggerForActivation(
     if (!nonEmpty(cfg.schedule)) {
       issues.push({ path: 'trigger.schedule', message: 'schedule is required' })
     }
+  } else if (triggerType === 'unanswered_conversation') {
+    if (
+      typeof cfg.timeout_minutes !== 'number' ||
+      !Number.isInteger(cfg.timeout_minutes) ||
+      cfg.timeout_minutes < 1 ||
+      cfg.timeout_minutes > 10080
+    ) {
+      issues.push({
+        path: 'trigger.timeout_minutes',
+        message: 'timeout must be a whole number between 1 and 10080 minutes',
+      })
+    }
   } else if (triggerType === 'tag_added') {
     if (!nonEmpty(cfg.tag_id)) {
       issues.push({ path: 'trigger.tag_id', message: 'tag is required' })
@@ -206,6 +236,55 @@ export function validateTriggerForActivation(
   }
 
   return issues
+}
+
+export function validateTriggerStepsForActivation(
+  triggerType: AutomationTriggerType | string,
+  steps: StepLike[],
+): ValidationIssue[] {
+  if (triggerType !== 'unanswered_conversation') return []
+  const issues: ValidationIssue[] = []
+  const emailCount = countStepType(steps, 'send_email')
+  if (
+    emailCount !== 1 ||
+    steps.at(-1)?.step_type !== 'send_email'
+  ) {
+    issues.push({
+      path: 'steps',
+      message: 'unanswered-conversation automations must end with one root send_email step',
+    })
+  }
+  if (containsStepType(steps, 'wait')) {
+    issues.push({
+      path: 'steps',
+      message: 'unanswered-conversation automations cannot contain wait steps',
+    })
+  }
+  return issues
+}
+
+function containsStepType(steps: StepLike[], target: string): boolean {
+  return steps.some(
+    (step) =>
+      step.step_type === target ||
+      (step.step_type === 'condition' &&
+        step.branches != null &&
+        (containsStepType(step.branches.yes ?? [], target) ||
+          containsStepType(step.branches.no ?? [], target))),
+  )
+}
+
+function countStepType(steps: StepLike[], target: string): number {
+  return steps.reduce(
+    (count, step) =>
+      count +
+      (step.step_type === target ? 1 : 0) +
+      (step.step_type === 'condition' && step.branches
+        ? countStepType(step.branches.yes ?? [], target) +
+          countStepType(step.branches.no ?? [], target)
+        : 0),
+    0,
+  )
 }
 
 function nonEmpty(v: unknown): boolean {

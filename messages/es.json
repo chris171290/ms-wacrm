@@ -1063,6 +1063,7 @@
         "wait": "Esperar",
         "condition": "Condición (Si/Si no)",
         "send_webhook": "Enviar webhook",
+        "send_email": "Enviar correo",
         "close_conversation": "Cerrar conversación"
       },
       "triggers": {
@@ -1097,6 +1098,10 @@
         "time_based": {
           "label": "Basado en tiempo",
           "hint": "Con un horario recurrente"
+        },
+        "unanswered_conversation": {
+          "label": "Conversación sin respuesta",
+          "hint": "Cuando el agente asignado no responde al último mensaje del cliente"
         }
       },
       "trigger": "Disparador",
@@ -1203,7 +1208,13 @@
         "matchWord": "Palabra completa",
         "matchWordHint": "Coincide la palabra clave solo como palabra independiente, así que \"k\" ya no se activa con \"gracias\". Ideal para palabras clave cortas en idiomas separados por espacios; usa Contiene para idiomas que se escriben sin espacios.",
         "matchExact": "Exacto",
-        "closeConversationHint": "Establece el estado de la conversación como \"cerrada\". No requiere configuración."
+        "closeConversationHint": "Establece el estado de la conversación como \"cerrada\". No requiere configuración.",
+        "timeoutMinutes": "Minutos sin respuesta del agente",
+        "emailRecipients": "Enviar a owners y administradores",
+        "noEmailRecipients": "No hay usuarios owner o admin disponibles.",
+        "emailSubject": "Asunto del correo",
+        "emailBody": "Contenido del correo",
+        "emailPlaceholders": "Disponibles: {{contact.name}}, {{contact.phone}}, {{agent.name}}, {{message.text}}, {{conversation.url}}"
       }
     }
   },

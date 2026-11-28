@@ -35,6 +35,10 @@ export const TRIGGER_META: Record<AutomationTriggerType, TriggerMeta> = {
     label: 'Time-Based',
     pillClass: 'border-slate-500/30 bg-slate-500/10 text-muted-foreground',
   },
+  unanswered_conversation: {
+    label: 'Unanswered Conversation',
+    pillClass: 'border-rose-500/30 bg-rose-500/10 text-rose-300',
+  },
   interactive_reply: {
     label: 'Button / List Reply',
     pillClass: 'border-pink-500/30 bg-pink-500/10 text-pink-300',

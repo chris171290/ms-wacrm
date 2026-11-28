@@ -10,6 +10,7 @@ import {
 import {
   validateStepsForActivation,
   validateTriggerForActivation,
+  validateTriggerStepsForActivation,
 } from '@/lib/automations/validate'
 
 async function requireUser() {
@@ -103,6 +104,7 @@ export async function PATCH(
     const issues = [
       ...validateTriggerForActivation(mergedTriggerType, mergedTriggerConfig),
       ...validateStepsForActivation(mergedSteps),
+      ...validateTriggerStepsForActivation(mergedTriggerType, mergedSteps),
     ]
     if (issues.length > 0) {
       return NextResponse.json(

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   validateStepsForActivation,
   validateTriggerForActivation,
+  validateTriggerStepsForActivation,
 } from "./validate";
 
 describe("validateStepsForActivation", () => {
@@ -90,6 +91,29 @@ describe("validateStepsForActivation", () => {
     expect(garbage.map((i) => i.message)).toContain(
       "webhook URL is not a valid URL",
     );
+  });
+
+  it("requires recipients, subject, and body for send_email", () => {
+    const issues = validateStepsForActivation([
+      { step_type: "send_email", step_config: {} },
+    ]);
+    expect(issues.map((issue) => issue.path)).toEqual([
+      "steps[0].recipient_user_ids",
+      "steps[0].subject",
+      "steps[0].body",
+    ]);
+    expect(
+      validateStepsForActivation([
+        {
+          step_type: "send_email",
+          step_config: {
+            recipient_user_ids: ["owner-1", "admin-1"],
+            subject: "Unanswered conversation",
+            body: "Please review",
+          },
+        },
+      ]),
+    ).toEqual([]);
   });
 
   it("validates assign_conversation only when mode is 'specific'", () => {
@@ -268,6 +292,73 @@ describe("validateTriggerForActivation", () => {
     expect(
       validateTriggerForActivation("time_based", { schedule: "0 9 * * *" }),
     ).toEqual([]);
+  });
+
+  it("validates the unanswered-conversation timeout", () => {
+    expect(
+      validateTriggerForActivation("unanswered_conversation", {
+        timeout_minutes: 30,
+      }),
+    ).toEqual([]);
+    expect(
+      validateTriggerForActivation("unanswered_conversation", {
+        timeout_minutes: 0.5,
+      }),
+    ).toEqual([
+      {
+        path: "trigger.timeout_minutes",
+        message: "timeout must be a whole number between 1 and 10080 minutes",
+      },
+    ]);
+  });
+
+  it("requires an email step for unanswered-conversation automations", () => {
+    expect(
+      validateTriggerStepsForActivation("unanswered_conversation", [
+        { step_type: "send_message", step_config: { text: "Hello" } },
+      ]),
+    ).toEqual([
+      {
+        path: "steps",
+        message:
+          "unanswered-conversation automations must end with one root send_email step",
+      },
+    ]);
+    expect(
+      validateTriggerStepsForActivation("unanswered_conversation", [
+        {
+          step_type: "condition",
+          step_config: { subject: "time_of_day", operand: "09:00-17:00" },
+          branches: { yes: [], no: [] },
+        },
+        {
+          step_type: "send_email",
+          step_config: {
+            recipient_user_ids: ["owner-1"],
+            subject: "Alert",
+            body: "Review",
+          },
+        },
+      ]),
+    ).toEqual([]);
+    expect(
+      validateTriggerStepsForActivation("unanswered_conversation", [
+        { step_type: "wait", step_config: { amount: 1, unit: "hours" } },
+        {
+          step_type: "send_email",
+          step_config: {
+            recipient_user_ids: ["owner-1"],
+            subject: "Alert",
+            body: "Review",
+          },
+        },
+      ]),
+    ).toEqual([
+      {
+        path: "steps",
+        message: "unanswered-conversation automations cannot contain wait steps",
+      },
+    ]);
   });
 
   it("requires tag_id on tag_added triggers", () => {

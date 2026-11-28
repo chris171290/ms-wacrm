@@ -17,6 +17,7 @@ import type {
   WaitStepConfig,
   CreateDealStepConfig,
   AssignConversationStepConfig,
+  SendEmailStepConfig,
 } from '@/types'
 import { supabaseAdmin } from './admin-client'
 import { addContactTagIfAbsent } from '@/lib/contacts/tag-write'
@@ -24,6 +25,11 @@ import { MAX_TAG_CHAIN_DEPTH, getTagChainDepth } from '@/lib/contacts/tag-chain'
 import { engineSendText, engineSendTemplate, engineSendInteractive } from './meta-send'
 import { validateInteractivePayload } from '@/lib/whatsapp/interactive'
 import { isDeliverableUrl } from '@/lib/webhooks/ssrf'
+import { sendSmtpEmail } from '@/lib/email/smtp'
+import {
+  interpolateEmailTemplate,
+  renderAutomationEmailHtml,
+} from './email-template'
 
 // ------------------------------------------------------------
 // Public API
@@ -34,6 +40,8 @@ export interface AutomationContext {
   message_text?: string
   /** Conversation the event belongs to, if any. */
   conversation_id?: string
+  /** Latest customer message that caused an unanswered-conversation alert. */
+  unanswered_message_id?: string
   /** Arbitrary variables accumulated during execution. */
   vars?: Record<string, unknown>
   /** The tag id that was added, for tag_added trigger. */
@@ -54,6 +62,13 @@ export interface DispatchInput {
   triggerType: AutomationTriggerType
   contactId?: string | null
   context?: AutomationContext
+  /** Restrict dispatch to one automation, used by scheduled trigger sweeps. */
+  automationId?: string
+}
+
+export interface AutomationDispatchResult {
+  automation_id: string
+  status: 'success' | 'partial' | 'failed'
 }
 
 /**
@@ -64,7 +79,10 @@ export interface DispatchInput {
  * All errors are caught and logged; per-automation failures are
  * recorded into automation_logs with status='failed'.
  */
-export async function runAutomationsForTrigger(input: DispatchInput): Promise<void> {
+export async function runAutomationsForTrigger(
+  input: DispatchInput,
+): Promise<AutomationDispatchResult[]> {
+  const results: AutomationDispatchResult[] = []
   try {
     const db = supabaseAdmin()
 
@@ -84,38 +102,43 @@ export async function runAutomationsForTrigger(input: DispatchInput): Promise<vo
         .maybeSingle()
       if (ownErr) {
         console.error('[automations] contact ownership check failed:', ownErr)
-        return
+        return results
       }
       if (!owned) {
         console.warn('[automations] contact not in account, refusing dispatch', input.contactId)
-        return
+        return results
       }
     }
 
-    const { data: automations, error } = await db
+    let query = db
       .from('automations')
       .select('*')
       .eq('account_id', input.accountId)
       .eq('trigger_type', input.triggerType)
       .eq('is_active', true)
+    if (input.automationId) query = query.eq('id', input.automationId)
+    const { data: automations, error } = await query
 
     if (error) {
       console.error('[automations] fetch failed:', error)
-      return
+      return results
     }
-    if (!automations || automations.length === 0) return
+    if (!automations || automations.length === 0) return results
 
     for (const automation of automations as Automation[]) {
       if (!triggerMatches(automation, input.context)) continue
       try {
-        await executeAutomation(automation, input)
+        const status = await executeAutomation(automation, input)
+        results.push({ automation_id: automation.id, status })
       } catch (err) {
         console.error('[automations] execute failed:', automation.id, err)
+        results.push({ automation_id: automation.id, status: 'failed' })
       }
     }
   } catch (err) {
     console.error('[automations] dispatch failed:', err)
   }
+  return results
 }
 
 /**
@@ -173,7 +196,10 @@ export async function resumePendingExecution(pending: {
 // Internal execution
 // ------------------------------------------------------------
 
-async function executeAutomation(automation: Automation, input: DispatchInput) {
+async function executeAutomation(
+  automation: Automation,
+  input: DispatchInput,
+): Promise<'success' | 'partial' | 'failed'> {
   const db = supabaseAdmin()
 
   const { data: log, error: logErr } = await db
@@ -204,7 +230,7 @@ async function executeAutomation(automation: Automation, input: DispatchInput) {
 
   if (logErr || !log) {
     console.error('[automations] cannot create log:', logErr)
-    return
+    return 'failed'
   }
 
   await executeStepsFrom({
@@ -228,6 +254,24 @@ async function executeAutomation(automation: Automation, input: DispatchInput) {
   if (rpcErr) {
     console.error('[automations] increment counter failed:', rpcErr)
   }
+
+  const { data: completedLog, error: completedLogError } = await db
+    .from('automation_logs')
+    .select('status')
+    .eq('id', log.id)
+    .maybeSingle()
+  if (completedLogError || !completedLog) {
+    console.error('[automations] cannot read execution result:', completedLogError)
+    return 'failed'
+  }
+  if (
+    completedLog.status === 'success' ||
+    completedLog.status === 'partial' ||
+    completedLog.status === 'failed'
+  ) {
+    return completedLog.status
+  }
+  return 'failed'
 }
 
 interface ExecuteArgs {
@@ -636,6 +680,91 @@ async function runStep(step: AutomationStep, args: ExecuteArgs): Promise<string>
       })
       if (!res.ok) throw new Error(`webhook returned ${res.status}`)
       return `webhook ${res.status}`
+    }
+
+    case 'send_email': {
+      const cfg = step.step_config as SendEmailStepConfig
+      const conversationId = args.context.conversation_id
+      if (!conversationId || !args.contactId) {
+        throw new Error('send_email needs a conversation and contact')
+      }
+
+      const recipientIds = Array.isArray(cfg.recipient_user_ids)
+        ? [...new Set(cfg.recipient_user_ids.filter((id) => typeof id === 'string' && id))]
+        : []
+      if (recipientIds.length === 0) {
+        throw new Error('send_email needs at least one recipient')
+      }
+
+      const { data: recipients, error: recipientsError } = await db
+        .from('profiles')
+        .select('user_id, full_name, email')
+        .eq('account_id', args.automation.account_id)
+        .in('account_role', ['owner', 'admin'])
+        .in('user_id', recipientIds)
+      if (recipientsError) {
+        throw new Error(`send_email recipients lookup failed: ${recipientsError.message}`)
+      }
+      if (!recipients || recipients.length !== recipientIds.length) {
+        throw new Error('send_email recipients must be owner/admin members of this account')
+      }
+      if (
+        recipients.some(
+          (recipient) => typeof recipient.email !== 'string' || !recipient.email.trim(),
+        )
+      ) {
+        throw new Error('send_email recipient is missing an email address')
+      }
+
+      const { data: conversation, error: conversationError } = await db
+        .from('conversations')
+        .select('assigned_agent_id')
+        .eq('id', conversationId)
+        .eq('account_id', args.automation.account_id)
+        .maybeSingle()
+      if (conversationError) {
+        throw new Error(`send_email conversation lookup failed: ${conversationError.message}`)
+      }
+      if (!conversation) throw new Error('send_email conversation was not found in this account')
+
+      const [{ data: contact, error: contactError }, agentResult] = await Promise.all([
+        db
+          .from('contacts')
+          .select('name, phone')
+          .eq('id', args.contactId)
+          .eq('account_id', args.automation.account_id)
+          .maybeSingle(),
+        conversation.assigned_agent_id
+          ? db
+              .from('profiles')
+              .select('full_name')
+              .eq('account_id', args.automation.account_id)
+              .eq('user_id', conversation.assigned_agent_id)
+              .maybeSingle()
+          : Promise.resolve({ data: null, error: null }),
+      ])
+      if (contactError) throw new Error(`send_email contact lookup failed: ${contactError.message}`)
+      if (agentResult.error) throw new Error(`send_email agent lookup failed: ${agentResult.error.message}`)
+      if (!contact) throw new Error('send_email contact was not found in this account')
+
+      const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '')
+      const conversationUrl = `${siteUrl}/inbox?c=${encodeURIComponent(conversationId)}`
+      const templateContext = {
+        contactName: contact.name || contact.phone || '',
+        contactPhone: contact.phone || '',
+        agentName: agentResult.data?.full_name || '',
+        messageText: args.context.message_text || '',
+        conversationUrl,
+      }
+
+      const emailText = interpolateEmailTemplate(cfg.body, templateContext)
+      await sendSmtpEmail({
+        to: recipients.map((recipient) => String(recipient.email).trim()),
+        subject: interpolateEmailTemplate(cfg.subject, templateContext),
+        text: emailText,
+        html: renderAutomationEmailHtml(emailText),
+      })
+      return `email sent to ${recipients.length} recipient(s)`
     }
 
     case 'close_conversation': {

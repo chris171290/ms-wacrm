@@ -23,6 +23,12 @@ export async function POST(request: Request) {
   if (!body?.trigger_type) {
     return NextResponse.json({ error: 'trigger_type required' }, { status: 400 })
   }
+  if (body.trigger_type === 'unanswered_conversation') {
+    return NextResponse.json(
+      { error: 'unanswered_conversation is a scheduled trigger' },
+      { status: 400 },
+    )
+  }
 
   await runAutomationsForTrigger({
     accountId,
